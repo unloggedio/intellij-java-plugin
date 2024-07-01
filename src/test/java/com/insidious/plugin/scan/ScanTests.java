@@ -5,7 +5,6 @@ import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.UnloggedLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.factory.ActiveSessionManager;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.scan.model.*;
@@ -31,6 +30,8 @@ public class ScanTests {
 
     public static String SESSIONS_PATH;
     public static int calls = 0;
+    private final boolean stopTestPostTimeout = true;
+    private final int timeoutDuration = 30;
 
     @BeforeAll
     public static void beforeAll() {
@@ -41,9 +42,19 @@ public class ScanTests {
     @Test
     public void runScanTests() throws SQLException, IOException, InterruptedException {
 
+        List<String> scanFailedList = new ArrayList<>();
         List<ScanTestResult> scanTestResults = new ArrayList<>();
-        for (ScanTestModel scanTestModel : getTests()) {
+        List<ScanTestModel> scanTestSuite = getTests();
+        int globalTotalAssertions = scanTestSuite.stream().map(result -> result.getAssertions().size())
+                .mapToInt(Integer::intValue).sum();
+
+        for (ScanTestModel scanTestModel : scanTestSuite) {
             Map<MethodReference, AssertionResult> assertionResults = assertScannedValuesFromSession(scanTestModel.getAssertions(), scanTestModel.getSessionFolder());
+            if (assertionResults == null) {
+                System.out.println("Scan failed/Timed out for session : " + scanTestModel.getSessionFolder());
+                scanFailedList.add(scanTestModel.getSessionFolder());
+                continue;
+            }
             ScanTestResult scanTestResult = new ScanTestResult(scanTestModel.getSessionFolder(), assertionResults, scanTestModel);
             scanTestResults.add(scanTestResult);
 
@@ -52,6 +63,7 @@ public class ScanTests {
 
         Map<ScanTestModel, SessionResults> sessionWiseStatus = new HashMap<>();
 
+        AtomicInteger globalPassingTotal = new AtomicInteger(0);
         AtomicBoolean overallPassing = new AtomicBoolean(true);
         scanTestResults.forEach(scanTestResult -> {
             int totalCount = scanTestResult.getScanTestModel().getAssertions().size();
@@ -96,6 +108,7 @@ public class ScanTests {
                 }
             });
             System.out.println("---------------------");
+            globalPassingTotal.set(globalPassingTotal.get() + passingCount.get());
             sessionWiseStatus.put(scanTestResult.getScanTestModel(), new SessionResults(sessionPassing.get(), totalCount, passingCount.get()));
         });
         System.out.println("\nStatus by session -> \n");
@@ -104,6 +117,13 @@ public class ScanTests {
             System.out.println("Status : " + (value.isPassing() ? "Passing" : "Failing"));
             System.out.println("Passing : " + value.getPassingOutOfTotalCount() + "\n");
         });
+
+        scanFailedList.forEach(sessionFolderName -> {
+            System.out.println("Scan failed/Timed out for : " + sessionFolderName);
+        });
+
+        System.out.println("OVERALL RESULT : ");
+        System.out.println("Passing : " + globalPassingTotal.get() + "/" + globalTotalAssertions);
         Assertions.assertEquals(true, overallPassing.get());
     }
 
@@ -126,11 +146,34 @@ public class ScanTests {
         sessionInstance.unlockNextScan();
 
         final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(1);
-        threadPoolExecutor.submit(sessionInstance);
 
         int zipCount = new File(sessionPath).listFiles().length;
+        //limit wait here to 30 seconds
+        long startTime = System.currentTimeMillis();
+        boolean timeout = false;
         while (sessionInstance.getProcessedFileCount() < zipCount) {
+            if (!sessionInstance.isScanEnable()) {
+                System.out.println("Scan not enabled");
+            }
+            long currentTime = System.currentTimeMillis();
+            long delta = (currentTime - startTime) / 1000;
+            if (delta > timeoutDuration) {
+                timeout = true;
+                break;
+            }
             continue;
+        }
+
+        System.out.println("Timed out from scan : " + timeout);
+        if (timeout && sessionInstance.getProcessedFileCount() < zipCount) {
+            if (stopTestPostTimeout) {
+                System.out.println("Scan Did not complete in time, stopping");
+
+                sessionInstance.close();
+                cleanUpFolder(new File(sessionPath));
+
+                return null;
+            }
         }
 
         CountDownLatch cdl = new CountDownLatch(1);
@@ -140,9 +183,7 @@ public class ScanTests {
         Runnable timeoutCheck = new Runnable() {
             @Override
             public void run() {
-                System.out.println("Scheduled call : " + calls++);
                 if (waiting.get()) {
-                    System.out.println("Done From timeout");
                     sessionInstance.close();
                     cleanUpFolder(new File(sessionPath));
                 }
@@ -256,7 +297,7 @@ public class ScanTests {
 
         //SDK 0.6.100 - With process counter = 4, class counter = 3 and method counter = 2
         ScanTestModel freqLogging = new ScanTestModel("freq-logging-maven-demo", assertions);
-        //scanTests.add(freqLogging);
+        scanTests.add(freqLogging);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getDefaultModel",
@@ -281,7 +322,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Model mapper candidates
         ScanTestModel modelMapperNonReactive = new ScanTestModel("modelmapper-non-reactive", assertions);
-        //scanTests.add(modelMapperNonReactive);
+        scanTests.add(modelMapperNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("deleteById",
@@ -306,7 +347,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Mongo Crud Non reactive
         ScanTestModel mongoCrudNonReactive = new ScanTestModel("mongo-crud-non-reactive", assertions);
-        //scanTests.add(mongoCrudNonReactive);
+        scanTests.add(mongoCrudNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("chain",
@@ -375,7 +416,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Optional Usage Non reactive
         ScanTestModel optionalNonReactive = new ScanTestModel("optional-non-reactive", assertions);
-        //scanTests.add(optionalNonReactive);
+        scanTests.add(optionalNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("createWithCode",
@@ -396,7 +437,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Response Entity Non reactive candidates
         ScanTestModel responseEntityNonReactive = new ScanTestModel("responseEntity-non-reactive", assertions);
-        //scanTests.add(responseEntityNonReactive);
+        scanTests.add(responseEntityNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("groupBy",
@@ -481,7 +522,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Streams Non reactive candidates
         ScanTestModel streamNonReactive = new ScanTestModel("stream-non-reactive", assertions);
-        //scanTests.add(streamNonReactive);
+        scanTests.add(streamNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getCustomers",
@@ -506,7 +547,7 @@ public class ScanTests {
 
         //SDK - 0.6.3 - Var non reactive candidates
         ScanTestModel varNonReactice = new ScanTestModel("var-non-reactive", assertions);
-        //scanTests.add(varNonReactice);
+        scanTests.add(varNonReactice);
 
         //requires string format
         assertions = new HashMap<>();
@@ -520,7 +561,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - restTemplate non reactive candidates
         ScanTestModel restTemplateNonReactive = new ScanTestModel("restTemplate-non-reactive", assertions);
-        //scanTests.add(restTemplateNonReactive);
+        scanTests.add(restTemplateNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("scheduledThreadFixedDelay",
@@ -545,7 +586,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - threads non reactive candidates
         ScanTestModel threadsNonReactive = new ScanTestModel("threads-non-reactive", assertions);
-        //scanTests.add(threadsNonReactive);
+        scanTests.add(threadsNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getById",
@@ -595,7 +636,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - abstractions non reactive candidates
         ScanTestModel abstractionsNonReactive = new ScanTestModel("abstractions-non-reactive", assertions);
-        //scanTests.add(abstractionsNonReactive);
+        scanTests.add(abstractionsNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getStringVar",
@@ -621,7 +662,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - var - reactive candidates
         ScanTestModel varReactive = new ScanTestModel("var-reactive", assertions);
-        //scanTests.add(varReactive);
+        scanTests.add(varReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getType",
@@ -687,7 +728,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - sealed classes, redis and external api calls - reactive candidates
         ScanTestModel scraReactive = new ScanTestModel("sealed-classes-redis-api-reactive", assertions);
-        //scanTests.add(scraReactive);
+        scanTests.add(scraReactive);
 
         assertions = new HashMap<>();
 
@@ -709,7 +750,7 @@ public class ScanTests {
 
         //SDK 0.6.4 - VirtualThreads - Non Reactive //Java 21
         ScanTestModel virtualThreadsNonReactive = new ScanTestModel("virtual-threads-non-reactive", assertions);
-        //scanTests.add(virtualThreadsNonReactive);
+        scanTests.add(virtualThreadsNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("parseDouble",
@@ -766,7 +807,7 @@ public class ScanTests {
 
         //SDK 0.6.4 - Enhanced Switch - Non Reactive //Java 21
         ScanTestModel enhancedSwitchNonReactive = new ScanTestModel("enhanced-switch-non-reactive", assertions);
-        //scanTests.add(enhancedSwitchNonReactive);
+        scanTests.add(enhancedSwitchNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("checkEqualPoints",
@@ -787,7 +828,7 @@ public class ScanTests {
 
         // SDK 0.6.4 - Records - Non Reactive //Java 21 -> gets stuck here
         ScanTestModel recordPatternNonReactive = new ScanTestModel("record-non-reactive", assertions);
-        //scanTests.add(recordPatternNonReactive);
+        scanTests.add(recordPatternNonReactive);
 
         assertions = new HashMap<>();
 
@@ -809,7 +850,7 @@ public class ScanTests {
 
         //SDK 0.6.4 - File - Java 11 - Non reactive
         ScanTestModel fileNonReactive = new ScanTestModel("record-non-reactive", assertions);
-        //scanTests.add(fileNonReactive);
+        scanTests.add(fileNonReactive);
 
         assertions = new HashMap<>();
 
@@ -896,6 +937,427 @@ public class ScanTests {
         //SDK 0.6.4 - MongoDb reactive crud from - ReactiveMongoRepository, ReactiveCrudRepository and ReactiveMongoTemplate
         ScanTestModel mongoReactive = new ScanTestModel("mongo-crud-reactive-all-sources", assertions);
         scanTests.add(mongoReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("enrichTeacherDetails",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.service.ContentEnrichmentService"),
+                new AssertionOptions("{\"id\":\"3\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}}", null));
+
+        assertions.put(new MethodReference("enrichTeacherDetails",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.service.ContentEnrichmentService"),
+                new AssertionOptions("{\"id\":\"2\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}}", null));
+
+        assertions.put(new MethodReference("enrichTeacherDetails",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.service.ContentEnrichmentService"),
+                new AssertionOptions("{\"id\":\"1\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}}", null));
+
+        assertions.put(new MethodReference("getAllTeachers",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.service.ContentEnrichmentService"),
+                new AssertionOptions("[{\"id\":\"1\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}},{\"id\":\"2\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}},{\"id\":\"3\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}}]", null));
+
+        assertions.put(new MethodReference("getAllTeachers",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.controller.TeacherController"),
+                new AssertionOptions("{\"headers\":{},\"body\":[{\"id\":\"1\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}},{\"id\":\"2\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}},{\"id\":\"3\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}}],\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("enrichTeacherDetails",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.service.ContentEnrichmentService"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}}", null));
+
+        assertions.put(new MethodReference("getTeacherById",
+                        "org.unlogged.springwebfluxdemo.nestedPojo.controller.TeacherController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"id\":\"string\",\"name\":\"John Doe\",\"address\":{\"street\":\"123 Main St\",\"city\":\"San Francisco\",\"contacts\":[{\"email\":\"teacher@example.com\",\"phone\":\"123-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}},{\"email\":\"teacherother@example.com\",\"phone\":\"223-456-7890\",\"locations\":{\"latitude\":37.7749,\"longitude\":-122.4194}}]}},\"status\":\"OK\"}", null));
+
+        //SDK 0.6.4 - Complex Nested Pojo usage - Reactive with pbject enrichment
+        ScanTestModel complexPojoReactive = new ScanTestModel("complex-pojo-reactive", assertions);
+        scanTests.add(complexPojoReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("all",
+                        "org.unlogged.springwebfluxdemo.repository.RedisCoffeeInteractionRepoImpl"),
+                new AssertionOptions("[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]", null));
+
+        assertions.put(new MethodReference("getCoffeeList",
+                        "org.unlogged.springwebfluxdemo.service.flow1.CustomServiceCEImpl"),
+                new AssertionOptions("[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]", null));
+
+        assertions.put(new MethodReference("getCoffeeList",
+                        "org.unlogged.springwebfluxdemo.controller.flow1.CustomControllerCE"),
+                new AssertionOptions("{\"headers\":{},\"body\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}],\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getAllStaffNames",
+                        "org.unlogged.springwebfluxdemo.repository.flow1.RXjavaSqlRepoImpl"),
+                new AssertionOptions("[1,2,3,4,5,6,7,9,1,2,3,4,5,6,7,9,1,2,3,4,5,6,7,9]", null));
+
+        assertions.put(new MethodReference("getAllStaffNames",
+                        "org.unlogged.springwebfluxdemo.controller.flow1.CustomControllerCE"),
+                new AssertionOptions("{\"headers\":{},\"body\":[1,2,3,4,5,6,7,9],\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getStaffForUniversity",
+                        "org.unlogged.springwebfluxdemo.repository.flow1.RXjavaSqlRepoImpl"),
+                new AssertionOptions("[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]", null));
+
+        assertions.put(new MethodReference("all",
+                        "org.unlogged.springwebfluxdemo.repository.RedisCoffeeInteractionRepoImpl"),
+                new AssertionOptions("[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]", null));
+
+        assertions.put(new MethodReference("getCoffeeList",
+                        "org.unlogged.springwebfluxdemo.service.flow1.CustomServiceCEImpl"),
+                new AssertionOptions("[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"},{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]", null));
+
+        assertions.put(new MethodReference("getStaffForUniversity",
+                        "org.unlogged.springwebfluxdemo.repository.flow1.RXjavaSqlRepoImpl"),
+                new AssertionOptions("[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]", null));
+
+        assertions.put(new MethodReference("getUniversityProfile",
+                        "org.unlogged.springwebfluxdemo.repository.flow1.RXjavaSqlRepoImpl"),
+                new AssertionOptions("[{\"id\":2,\"name\":\"university2\",\"address\":\"place2\"},{\"id\":2,\"name\":\"university2\",\"address\":\"place2\"},{\"id\":2,\"name\":\"university2\",\"address\":\"place2\"}]", null));
+
+        assertions.put(new MethodReference("getUniversityProfile",
+                        "org.unlogged.springwebfluxdemo.service.flow1.CustomServiceCEImpl"),
+                new AssertionOptions("[{\"id\":2,\"name\":\"university2\",\"address\":\"place2\",\"staffList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]},{\"id\":2,\"name\":\"university2\",\"address\":\"place2\",\"staffList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]},{\"id\":2,\"name\":\"university2\",\"address\":\"place2\",\"staffList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]}]", null));
+
+        assertions.put(new MethodReference("getFoodProfileForUniversity",
+                        "org.unlogged.springwebfluxdemo.service.flow1.CustomServiceCEImpl"),
+                new AssertionOptions("[{\"universityId\":2,\"universityName\":\"university2\",\"beveragesAvailable\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]},{\"universityId\":2,\"universityName\":\"university2\",\"beveragesAvailable\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]},{\"universityId\":2,\"universityName\":\"university2\",\"beveragesAvailable\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}]}]", null));
+
+        assertions.put(new MethodReference("getUniversityV2",
+                        "org.unlogged.springwebfluxdemo.service.flow1.CustomServiceCEImpl"),
+                new AssertionOptions("[{\"id\":2,\"name\":\"university2\",\"beverages\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}],\"listOfStudents\":[],\"listOfSeniorMembers\":[{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}],\"staffDTOList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]},{\"id\":2,\"name\":\"university2\",\"beverages\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}],\"listOfStudents\":[],\"listOfSeniorMembers\":[{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}],\"staffDTOList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]},{\"id\":2,\"name\":\"university2\",\"beverages\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}],\"listOfStudents\":[],\"listOfSeniorMembers\":[{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}],\"staffDTOList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]}]", null));
+
+        assertions.put(new MethodReference("getUniversityV2",
+                        "org.unlogged.springwebfluxdemo.controller.flow1.CustomControllerCE"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"id\":2,\"name\":\"university2\",\"beverages\":[{\"id\":\"162ed715-6bde-4946-b068-f043f3465a4e\",\"name\":\"Darth Redis\"},{\"id\":\"19b83708-bbd7-45eb-a653-0d3897923613\",\"name\":\"Jet Black Redis\"},{\"id\":\"6820a9ee-83a7-42c3-87d6-be5cc4917281\",\"name\":\"Black Alert Redis\"}],\"listOfStudents\":[],\"listOfSeniorMembers\":[{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}],\"staffDTOList\":[{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"},{\"id\":2,\"name\":\"string\"}]},\"status\":\"OK\"}", null));
+
+        //SDK 0.6.4 - Mixed streams from mongo, redis and sql (rx java) - reactive
+        ScanTestModel mixedFlow = new ScanTestModel("mixed-flow-reactive", assertions);
+        scanTests.add(mixedFlow);
+
+        assertions = new HashMap<>();
+
+        assertions.put(new MethodReference("fallBackReview",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.client.ReviewClient"),
+                new AssertionOptions("[{\"id\":1,\"user\":\"FallBack User\",\"rating\":0,\"comment\":\"FallBack comment\"}]", null));
+
+        assertions.put(new MethodReference("getReviews",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.externalservices.review.MockReviewController"),
+                new AssertionOptions("{\"headers\":{},\"body\":[{\"id\":1,\"user\":\"User1\",\"rating\":4,\"comment\":\"Great food\"},{\"id\":1,\"user\":\"User2\",\"rating\":5,\"comment\":\"Excellent service\"}],\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getReviews",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.client.ReviewClient"),
+                new AssertionOptions("[{\"id\":1,\"user\":\"User1\",\"rating\":4,\"comment\":\"Great food\"},{\"id\":1,\"user\":\"User2\",\"rating\":5,\"comment\":\"Excellent service\"}]", null));
+
+        assertions.put(new MethodReference("getReviews",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.externalservices.review.MockReviewController"),
+                new AssertionOptions("{\"headers\":{},\"body\":null,\"status\":\"NOT_FOUND\"}", null));
+
+        assertions.put(new MethodReference("getReviews",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.client.ReviewClient"),
+                new AssertionOptions("[]", null));
+
+        assertions.put(new MethodReference("getRestaurant",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.externalservices.restaurant.MockRestaurantController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"id\":0,\"cuisine\":\"Mexican\",\"description\":\"Any other food id is mexican\",\"price\":90},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getRestaurant",
+                        "org.unlogged.springwebfluxdemo.resilientPatterns.client.RestaurantClient"),
+                new AssertionOptions("{\"id\":0,\"cuisine\":\"Mexican\",\"description\":\"Any other food id is mexican\",\"price\":90}", null));
+
+
+        //SDK 0.6.4 - Resilient Patterns - reactive
+        ScanTestModel resilientPatternsReactive = new ScanTestModel("resilient-patterns-reactive", assertions);
+        scanTests.add(resilientPatternsReactive);
+
+        assertions = new HashMap<>();
+
+        assertions.put(new MethodReference("getProduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ProductClient"),
+                new AssertionOptions("{\"id\":0,\"category\":\"Electronics\",\"description\":\"Sample Product Description\",\"price\":100}", null));
+
+        assertions.put(new MethodReference("getProduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.service.OrderFulfillmentService"),
+                new AssertionOptions("{\"orderId\":\"48298811-466c-4e76-8ad3-bec8fa2bba32\",\"orderRequest\":{\"userId\":0,\"productId\":0,\"quantity\":0},\"productPrice\":100,\"paymentRequest\":null,\"paymentResponse\":null,\"inventoryRequest\":null,\"inventoryResponse\":null,\"shippingRequest\":null,\"shippingResponse\":null,\"status\":null}", null));
+
+        assertions.put(new MethodReference("placeOrder",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.service.OrderFulfillmentService"),
+                new AssertionOptions("{\"orderId\":\"48298811-466c-4e76-8ad3-bec8fa2bba32\",\"orderRequest\":{\"userId\":0,\"productId\":0,\"quantity\":0},\"productPrice\":100,\"paymentRequest\":{\"userId\":0,\"amount\":0,\"orderId\":\"48298811-466c-4e76-8ad3-bec8fa2bba32\"},\"paymentResponse\":{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"},\"inventoryRequest\":{\"paymentId\":null,\"productId\":0,\"quantity\":0},\"inventoryResponse\":{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"},\"shippingRequest\":{\"quantity\":0,\"userId\":0,\"inventoryId\":null},\"shippingResponse\":{\"shippingId\":null,\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}},\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("placeOrder",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.service.OrchestratorService"),
+                new AssertionOptions("{\"userId\":0,\"productId\":0,\"orderId\":\"48298811-466c-4e76-8ad3-bec8fa2bba32\",\"status\":\"SUCCESS\",\"shippingAddress\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"},\"expectedDelivery\":\"2024-07-04\"}", null));
+
+        assertions.put(new MethodReference("placeOrder",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.controller.OrderController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"userId\":0,\"productId\":0,\"orderId\":\"48298811-466c-4e76-8ad3-bec8fa2bba32\",\"status\":\"SUCCESS\",\"shippingAddress\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"},\"expectedDelivery\":\"2024-07-04\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callUserService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callUserService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("refund",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callUserService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.UserClient"),
+                new AssertionOptions("{\"paymentId\":null,\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("callShippingService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("callShippingService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("cancel",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("callShippingService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("schedule",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ShippingClient"),
+                new AssertionOptions("{\"shippingId\":null,\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("getProduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.ProductClient"),
+                new AssertionOptions("{\"id\":0,\"category\":\"Electronics\",\"description\":\"Sample Product Description\",\"price\":100}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callInventoryService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callInventoryService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("restore",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callInventoryService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorsequential.sec04.client.InventoryClient"),
+                new AssertionOptions("{\"inventoryId\":null,\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("schedule",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ShippingController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"orderId\":\"d5949af6-cfbd-4adf-a48d-6f1bb5f378c4\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.InventoryController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ExternalUserController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getProduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ExternalProductController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"id\":0,\"category\":\"Electronics\",\"description\":\"Sample Product Description\",\"price\":100},\"status\":\"OK\"}", null));
+
+        // SDK 0.6.4 - Integration Pattern - Sequential orchestration - reactive
+        ScanTestModel sequentialOrchestration = new ScanTestModel("orchestration-sequential-reactive", assertions);
+        scanTests.add(sequentialOrchestration);
+
+        assertions = new HashMap<>();
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("filter",
+                        "org.unlogged.springwebfluxdemo.filter.ContextEnrichmentFilter"),
+                new AssertionOptions("\"org.springframework.web.server.ResponseStatusException: 404 NOT_FOUND\"", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callUserService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("refund",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ExternalUserController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callUserService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("refund",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ExternalUserController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callUserService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.UserClient"),
+                new AssertionOptions("{\"userId\":0,\"name\":null,\"balance\":0,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("cancel",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ShippingController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"orderId\":\"329dd63d-8eee-42dc-8844-b294d3979f8c\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ShippingClient"),
+                new AssertionOptions("{\"orderId\":\"329dd63d-8eee-42dc-8844-b294d3979f8c\",\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("callShippingService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ShippingClient"),
+                new AssertionOptions("{\"orderId\":\"329dd63d-8eee-42dc-8844-b294d3979f8c\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("cancel",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ShippingClient"),
+                new AssertionOptions("{\"orderId\":\"329dd63d-8eee-42dc-8844-b294d3979f8c\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":null,\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("schedule",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ShippingController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"orderId\":\"f341c8a0-54d3-46f6-9f55-c47789925405\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ShippingClient"),
+                new AssertionOptions("{\"orderId\":\"c0e880ee-8719-4bbe-9789-fae3c5151de9\",\"quantity\":0,\"status\":\"FAILED\",\"expectedDelivery\":null,\"address\":null}", null));
+
+        assertions.put(new MethodReference("callShippingService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ShippingClient"),
+                new AssertionOptions("{\"orderId\":\"f341c8a0-54d3-46f6-9f55-c47789925405\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("schedule",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ShippingClient"),
+                new AssertionOptions("{\"orderId\":\"f341c8a0-54d3-46f6-9f55-c47789925405\",\"quantity\":0,\"status\":\"SUCCESS\",\"expectedDelivery\":\"2024-07-04\",\"address\":{\"street\":\"123 Main St\",\"city\":\"Anytown\",\"state\":\"AnyState\",\"zipCode\":\"12345\"}}", null));
+
+        assertions.put(new MethodReference("getProduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.ExternalProductController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"id\":0,\"category\":\"Electronics\",\"description\":\"Sample Product Description\",\"price\":100},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getProduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.ProductClient"),
+                new AssertionOptions("{\"id\":0,\"category\":\"Electronics\",\"description\":\"Sample Product Description\",\"price\":100}", null));
+
+        assertions.put(new MethodReference("filter",
+                        "org.unlogged.springwebfluxdemo.filter.ContextEnrichmentFilter"),
+                new AssertionOptions("\"org.springframework.web.server.ResponseStatusException: 404 NOT_FOUND\"", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callInventoryService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("restore",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.InventoryController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callInventoryService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("restore",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.externalservices.InventoryController"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("buildErrorResponse",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"FAILED\"}", null));
+
+        assertions.put(new MethodReference("callInventoryService",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        assertions.put(new MethodReference("deduct",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.orchestrator.orchestratorparallel.sec03.client.InventoryClient"),
+                new AssertionOptions("{\"productId\":0,\"quantity\":0,\"remainingQuantity\":null,\"status\":\"SUCCESS\"}", null));
+
+        // SDK 0.6.4 - Integration Pattern - Parallel orchestration - reactive
+        ScanTestModel parallelOrchestration = new ScanTestModel("orchestration-parallel-reactive", assertions);
+        scanTests.add(parallelOrchestration);
 
         return scanTests;
     }
