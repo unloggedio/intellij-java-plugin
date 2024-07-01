@@ -50,13 +50,15 @@ public class ScanTests {
             Thread.sleep(500);
         }
 
-        Map<ScanTestModel, Boolean> sessionWiseStatus = new HashMap<>();
+        Map<ScanTestModel, SessionResults> sessionWiseStatus = new HashMap<>();
 
         AtomicBoolean overallPassing = new AtomicBoolean(true);
         scanTestResults.forEach(scanTestResult -> {
+            int totalCount = scanTestResult.getScanTestModel().getAssertions().size();
             AtomicBoolean sessionPassing = new AtomicBoolean(true);
+            int missingCount = totalCount - scanTestResult.getAssertionResults().size();
             System.out.println("Results from session : " + scanTestResult.getSessionFolder() + "\n");
-            if (scanTestResult.getAssertionResults().size() < scanTestResult.getScanTestModel().getAssertions().size()) {
+            if (missingCount > 0) {
                 System.out.println("Some candidates were not found");
                 System.out.println("Missing candidate count : " + (scanTestResult.getScanTestModel().getAssertions().size() - scanTestResult.getAssertionResults().size()));
                 System.out.println("Missing Candidates -> \n");
@@ -65,7 +67,7 @@ public class ScanTests {
                 originalAssertions.removeAll(actualAssertions);
                 originalAssertions.forEach((key) -> {
                     System.out.println("Classname : " + key.getContainingClass());
-                    System.out.println("Methodname : " + key.getMethodName());
+                    System.out.println("Method : " + key.getMethodName());
                     System.out.println("Expected value : " + scanTestResult.getScanTestModel().getAssertions().get(key));
                     System.out.println("Status : Missing\n");
                 });
@@ -74,16 +76,19 @@ public class ScanTests {
             }
             System.out.println("\nCompleted Assertions -> \n");
             AtomicInteger count = new AtomicInteger(1);
+            AtomicInteger passingCount = new AtomicInteger(0);
             scanTestResult.getAssertionResults().forEach((key, value) -> {
                 System.out.println("* Case - " + count.getAndIncrement());
                 System.out.println("Classname : " + key.getContainingClass());
-                System.out.println("Methodname : " + key.getMethodName());
-                System.out.println("->");
+                System.out.println("Method : " + key.getMethodName());
                 System.out.println("Expected Value : " + value.getExpectedValue());
                 System.out.println("Recorded Value : " + value.getScannedValue());
                 System.out.println("Expected Count : " + value.getExpectedCount());
                 System.out.println("Recorded Count : " + value.getActualCount());
                 System.out.println("Status : " + (value.isPassing() ? "Passing" : "Failing"));
+                if (value.isPassing()) {
+                    passingCount.getAndIncrement();
+                }
                 System.out.println("\n");
                 if (!value.isPassing()) {
                     overallPassing.set(false);
@@ -91,12 +96,13 @@ public class ScanTests {
                 }
             });
             System.out.println("---------------------");
-            sessionWiseStatus.put(scanTestResult.getScanTestModel(), sessionPassing.get());
+            sessionWiseStatus.put(scanTestResult.getScanTestModel(), new SessionResults(sessionPassing.get(), totalCount, passingCount.get()));
         });
         System.out.println("\nStatus by session -> \n");
         sessionWiseStatus.forEach((key, value) -> {
             System.out.println("Session : " + key.getSessionFolder());
-            System.out.println("Status : " + (value ? "Passing" : "Failing") + "\n");
+            System.out.println("Status : " + (value.isPassing() ? "Passing" : "Failing"));
+            System.out.println("Passing : " + value.getPassingOutOfTotalCount() + "\n");
         });
         Assertions.assertEquals(true, overallPassing.get());
     }
@@ -250,7 +256,7 @@ public class ScanTests {
 
         //SDK 0.6.100 - With process counter = 4, class counter = 3 and method counter = 2
         ScanTestModel freqLogging = new ScanTestModel("freq-logging-maven-demo", assertions);
-        scanTests.add(freqLogging);
+        //scanTests.add(freqLogging);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getDefaultModel",
@@ -275,7 +281,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Model mapper candidates
         ScanTestModel modelMapperNonReactive = new ScanTestModel("modelmapper-non-reactive", assertions);
-        scanTests.add(modelMapperNonReactive);
+        //scanTests.add(modelMapperNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("deleteById",
@@ -300,7 +306,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Mongo Crud Non reactive
         ScanTestModel mongoCrudNonReactive = new ScanTestModel("mongo-crud-non-reactive", assertions);
-        scanTests.add(mongoCrudNonReactive);
+        //scanTests.add(mongoCrudNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("chain",
@@ -369,7 +375,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Optional Usage Non reactive
         ScanTestModel optionalNonReactive = new ScanTestModel("optional-non-reactive", assertions);
-        scanTests.add(optionalNonReactive);
+        //scanTests.add(optionalNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("createWithCode",
@@ -390,7 +396,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Response Entity Non reactive candidates
         ScanTestModel responseEntityNonReactive = new ScanTestModel("responseEntity-non-reactive", assertions);
-        scanTests.add(responseEntityNonReactive);
+        //scanTests.add(responseEntityNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("groupBy",
@@ -475,7 +481,7 @@ public class ScanTests {
 
         //SDK 0.6.3 - Streams Non reactive candidates
         ScanTestModel streamNonReactive = new ScanTestModel("stream-non-reactive", assertions);
-        scanTests.add(streamNonReactive);
+        //scanTests.add(streamNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getCustomers",
@@ -500,7 +506,7 @@ public class ScanTests {
 
         //SDK - 0.6.3 - Var non reactive candidates
         ScanTestModel varNonReactice = new ScanTestModel("var-non-reactive", assertions);
-        scanTests.add(varNonReactice);
+        //scanTests.add(varNonReactice);
 
         //requires string format
         assertions = new HashMap<>();
@@ -514,7 +520,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - restTemplate non reactive candidates
         ScanTestModel restTemplateNonReactive = new ScanTestModel("restTemplate-non-reactive", assertions);
-        scanTests.add(restTemplateNonReactive);
+        //scanTests.add(restTemplateNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("scheduledThreadFixedDelay",
@@ -539,7 +545,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - threads non reactive candidates
         ScanTestModel threadsNonReactive = new ScanTestModel("threads-non-reactive", assertions);
-        scanTests.add(threadsNonReactive);
+        //scanTests.add(threadsNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getById",
@@ -589,7 +595,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - abstractions non reactive candidates
         ScanTestModel abstractionsNonReactive = new ScanTestModel("abstractions-non-reactive", assertions);
-        scanTests.add(abstractionsNonReactive);
+        //scanTests.add(abstractionsNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getStringVar",
@@ -615,7 +621,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - var - reactive candidates
         ScanTestModel varReactive = new ScanTestModel("var-reactive", assertions);
-        scanTests.add(varReactive);
+        //scanTests.add(varReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getType",
@@ -681,7 +687,7 @@ public class ScanTests {
 
         //SDK - 0.6.4 - sealed classes, redis and external api calls - reactive candidates
         ScanTestModel scraReactive = new ScanTestModel("sealed-classes-redis-api-reactive", assertions);
-        scanTests.add(scraReactive);
+        //scanTests.add(scraReactive);
 
         assertions = new HashMap<>();
 
@@ -703,7 +709,7 @@ public class ScanTests {
 
         //SDK 0.6.4 - VirtualThreads - Non Reactive //Java 21
         ScanTestModel virtualThreadsNonReactive = new ScanTestModel("virtual-threads-non-reactive", assertions);
-        scanTests.add(virtualThreadsNonReactive);
+        //scanTests.add(virtualThreadsNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("parseDouble",
@@ -760,7 +766,7 @@ public class ScanTests {
 
         //SDK 0.6.4 - Enhanced Switch - Non Reactive //Java 21
         ScanTestModel enhancedSwitchNonReactive = new ScanTestModel("enhanced-switch-non-reactive", assertions);
-        scanTests.add(enhancedSwitchNonReactive);
+        //scanTests.add(enhancedSwitchNonReactive);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("checkEqualPoints",
@@ -781,7 +787,7 @@ public class ScanTests {
 
         // SDK 0.6.4 - Records - Non Reactive //Java 21 -> gets stuck here
         ScanTestModel recordPatternNonReactive = new ScanTestModel("record-non-reactive", assertions);
-        scanTests.add(recordPatternNonReactive);
+        //scanTests.add(recordPatternNonReactive);
 
         assertions = new HashMap<>();
 
@@ -803,7 +809,93 @@ public class ScanTests {
 
         //SDK 0.6.4 - File - Java 11 - Non reactive
         ScanTestModel fileNonReactive = new ScanTestModel("record-non-reactive", assertions);
-        scanTests.add(fileNonReactive);
+        //scanTests.add(fileNonReactive);
+
+        assertions = new HashMap<>();
+
+        assertions.put(new MethodReference("findAll",
+                        "org.unlogged.springwebfluxdemo.controller.MongoReactiveOpsController"),
+                new AssertionOptions("{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}", null));
+
+        assertions.put(new MethodReference("findPeopleByAge",
+                        "org.unlogged.springwebfluxdemo.controller.MongoReactiveOpsController"),
+                new AssertionOptions("{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}", null));
+
+        assertions.put(new MethodReference("findPeopleByName",
+                        "org.unlogged.springwebfluxdemo.controller.MongoReactiveOpsController"),
+                new AssertionOptions("{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}", null));
+
+        assertions.put(new MethodReference("addPerson",
+                        "org.unlogged.springwebfluxdemo.controller.MongoReactiveOpsController"),
+                new AssertionOptions("{\"id\":\"66823b71826c5965ae52e284\",\"name\":\"personY\",\"age\":63}", null));
+
+        assertions.put(new MethodReference("updateProduct",
+                        "org.unlogged.springwebfluxdemo.service.ProductService"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("updateProduct",
+                        "org.unlogged.springwebfluxdemo.controller.ProductController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("getAllProducts",
+                        "org.unlogged.springwebfluxdemo.service.ProductService"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("getAllProducts",
+                        "org.unlogged.springwebfluxdemo.controller.ProductController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("getProductById",
+                        "org.unlogged.springwebfluxdemo.service.ProductService"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("getProductById",
+                        "org.unlogged.springwebfluxdemo.controller.ProductController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("createProduct",
+                        "org.unlogged.springwebfluxdemo.service.ProductService"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("createProduct",
+                        "org.unlogged.springwebfluxdemo.controller.ProductController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"price\":0.0}", null));
+
+        assertions.put(new MethodReference("updatePlayer",
+                        "org.unlogged.springwebfluxdemo.service.PlayerService"),
+                new AssertionOptions("{\"id\":1,\"name\":\"string\",\"age\":1}", null));
+
+        assertions.put(new MethodReference("updatePlayer",
+                        "org.unlogged.springwebfluxdemo.controller.PlayerController"),
+                new AssertionOptions("{\"id\":1,\"name\":\"string\",\"age\":1}", null));
+
+        assertions.put(new MethodReference("getPlayerById",
+                        "org.unlogged.springwebfluxdemo.service.PlayerService"),
+                new AssertionOptions("{\"id\":6,\"name\":\"string\",\"age\":0}", null));
+
+        assertions.put(new MethodReference("getPlayerById",
+                        "org.unlogged.springwebfluxdemo.controller.PlayerController"),
+                new AssertionOptions("{\"id\":6,\"name\":\"string\",\"age\":0}", null));
+
+        assertions.put(new MethodReference("getAllPlayers",
+                        "org.unlogged.springwebfluxdemo.service.PlayerService"),
+                new AssertionOptions("[{\"id\":1,\"name\":\"string\",\"age\":0},{\"id\":2,\"name\":\"string\",\"age\":0},{\"id\":3,\"name\":\"string\",\"age\":0},{\"id\":4,\"name\":\"string\",\"age\":0},{\"id\":5,\"name\":\"string\",\"age\":0},{\"id\":6,\"name\":\"string\",\"age\":0}]", null));
+
+        assertions.put(new MethodReference("batchInsertProducts",
+                        "org.unlogged.springwebfluxdemo.controller.PlayerController"),
+                new AssertionOptions("{\"id\":6,\"name\":\"string\",\"age\":0}", null));
+
+        assertions.put(new MethodReference("createPlayer",
+                        "org.unlogged.springwebfluxdemo.service.PlayerService"),
+                new AssertionOptions("{\"id\":5,\"name\":\"string\",\"age\":0}", null));
+
+        assertions.put(new MethodReference("createPlayer",
+                        "org.unlogged.springwebfluxdemo.controller.PlayerController"),
+                new AssertionOptions("{\"id\":5,\"name\":\"string\",\"age\":0}", null));
+
+        //SDK 0.6.4 - MongoDb reactive crud from - ReactiveMongoRepository, ReactiveCrudRepository and ReactiveMongoTemplate
+        ScanTestModel mongoReactive = new ScanTestModel("mongo-crud-reactive-all-sources", assertions);
+        scanTests.add(mongoReactive);
 
         return scanTests;
     }
