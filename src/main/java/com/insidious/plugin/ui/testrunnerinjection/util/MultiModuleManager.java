@@ -1,5 +1,7 @@
 package com.insidious.plugin.ui.testrunnerinjection.util;
 
+import com.intellij.openapi.externalSystem.model.ProjectSystemId;
+import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -16,6 +18,7 @@ import java.util.Map;
 public class MultiModuleManager {
 
     private final Project project;
+    private static final ProjectSystemId GRADLE_SYSTEM_ID = new ProjectSystemId("GRADLE");
 
     /**
      * Constructor for MultiModuleManager.
@@ -64,6 +67,11 @@ public class MultiModuleManager {
         ModuleManager moduleManager = ModuleManager.getInstance(project);
         Module[] modules = moduleManager.getModules();
         for (Module module : modules) {
+            if (ExternalSystemApiUtil.isExternalSystemAwareModule(GRADLE_SYSTEM_ID, module) &&
+                    (module.getName().endsWith(".main") || module.getName().endsWith(".test"))) {
+                continue;
+            }
+
             boolean needsInjection = !checkModuleForRunnerFile(module);
             moduleMap.put(module, needsInjection);
         }
