@@ -1180,7 +1180,6 @@ public class UiTestsV3 {
     @Order(24)
     @Disabled
     public void runnerFile_injection_test_gradle_demo() {
-        int projectIndex = 1;
 
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
