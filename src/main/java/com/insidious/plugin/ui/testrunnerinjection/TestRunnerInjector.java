@@ -51,6 +51,7 @@ public class TestRunnerInjector {
     private JButton copyRunnerCode;
     private JPanel mvnWrapPanel;
     private JPanel gradleWrapPanel;
+    private JLabel dependencyLink;
 
     private String runnerCode = "import io.unlogged.runner.UnloggedTestRunner;\n" +
             "import org.junit.runner.RunWith;\n\n" +
@@ -89,6 +90,13 @@ public class TestRunnerInjector {
 
         link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         link.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routeToCiDocumentation();
+            }
+        });
+        dependencyLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        dependencyLink.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 routeToCiDocumentation();
