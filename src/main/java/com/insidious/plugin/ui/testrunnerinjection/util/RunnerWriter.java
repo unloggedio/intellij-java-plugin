@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.notification.NotificationType;
 import com.insidious.plugin.InsidiousNotification;
@@ -17,14 +18,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.Arrays;
 
+import static java.io.File.separator;
+
 /**
  * Utility class for writing UnloggedTestRunner file in specific module.
  */
 public class RunnerWriter {
 
     private final Project project;
-
     private final Logger logger = LoggerFactory.getLogger(RunnerWriter.class);
+    private final String testFileDir = separator + "src"+ separator + "test" + separator+ "java";
+    private final String testFileName = "UnloggedTest.java";
 
     /**
      * Constructor for RunnerWriter.
@@ -48,7 +52,7 @@ public class RunnerWriter {
             return;
         }
 
-        File runnerFile = constructTestRunnerFile(ProjectUtil.guessModuleDir(targetModule).getPath());
+        File runnerFile = constructTestRunnerFile(ProjectUtil.guessModuleDir(targetModule));
         logger.info("{} injected file exists: {}", runnerFile.getAbsolutePath(), runnerFile.exists());
         if (runnerFile.exists()) {
             InsidiousNotification.notifyMessage("Runner file for the module: "+moduleName+", already exists at: "+ runnerFile.getAbsolutePath(), NotificationType.WARNING);
@@ -95,14 +99,21 @@ public class RunnerWriter {
     /**
      * Constructs the file for UnloggedTestRunner based on the module path.
      *
-     * @param modulePath the path of the module file (.iml)
+     * @param moduleDir the path of the module directory
      * @return the File object representing the UnloggedTestRunner file.
      */
-    private File constructTestRunnerFile(String modulePath) {
-        String desiredDirectoryPath = modulePath + "/src/test/java";
+    private File constructTestRunnerFile(VirtualFile moduleDir) {
+
+        String desiredDirectoryPath;
+
+        if(moduleDir == null) {
+            desiredDirectoryPath = project.getBasePath() + testFileDir;
+        } else {
+            desiredDirectoryPath = moduleDir.getPath() + testFileDir;
+        }
         File desiredDirectory = new File(desiredDirectoryPath);
         desiredDirectory.mkdirs();
-        String desiredPath = desiredDirectoryPath + "/UnloggedTest.java";
+        String desiredPath = desiredDirectoryPath + separator + testFileName;
         File runnerFile = new File(desiredPath);
         return runnerFile;
     }

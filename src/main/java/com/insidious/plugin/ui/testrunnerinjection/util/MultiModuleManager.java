@@ -6,11 +6,15 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
+import com.intellij.openapi.vfs.VirtualFile;
 
 import javax.swing.*;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
+import static java.io.File.separator;
+
 /**
  * The MultiModuleManager class provides utilities for populating
  * module checkboxes and checking for specific files.
@@ -19,6 +23,7 @@ public class MultiModuleManager {
 
     private final Project project;
     private static final ProjectSystemId GRADLE_SYSTEM_ID = new ProjectSystemId("GRADLE");
+    private final String testFilePath = separator + "src"+ separator + "test" + separator+ "java" + separator + "UnloggedTest.java";
 
     /**
      * Constructor for MultiModuleManager.
@@ -86,8 +91,14 @@ public class MultiModuleManager {
      */
     private boolean checkModuleForRunnerFile(Module module) {
         boolean fileExists = false;
-        String desiredDirectoryPath = ProjectUtil.guessModuleDir(module).getPath() + "/src/test/java";
-        String testRunnerFilePath = desiredDirectoryPath + "/UnloggedTest.java";
+        VirtualFile guessedModuleDir = ProjectUtil.guessModuleDir(module);
+        String testRunnerFilePath;
+        if(guessedModuleDir == null) {
+            testRunnerFilePath = project.getBasePath() + testFilePath;
+        } else {
+            testRunnerFilePath = guessedModuleDir.getPath() + testFilePath;
+        }
+
         File testRunnerFile = new File(testRunnerFilePath);
         if (testRunnerFile.exists()) {
             fileExists = true;
