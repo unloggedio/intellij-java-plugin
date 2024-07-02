@@ -80,8 +80,9 @@
                   <component id="2a02c" class="javax.swing.JTextArea" binding="testRunnerText">
                     <constraints>
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                        <minimum-size width="150" height="-1"/>
-                        <preferred-size width="150" height="50"/>
+                        <minimum-size width="150" height="120"/>
+                        <preferred-size width="150" height="120"/>
+                        <maximum-size width="-1" height="120"/>
                       </grid>
                     </constraints>
                     <properties>
