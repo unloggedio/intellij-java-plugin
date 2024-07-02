@@ -4,6 +4,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.testrunnerinjection.components.CheckComboBox;
+import com.insidious.plugin.ui.testrunnerinjection.util.CommonUtil;
 import com.insidious.plugin.ui.testrunnerinjection.util.MultiModuleManager;
 import com.insidious.plugin.ui.testrunnerinjection.util.RunnerWriter;
 import com.intellij.notification.NotificationType;
@@ -53,12 +54,6 @@ public class TestRunnerInjector {
     private JPanel gradleWrapPanel;
     private JLabel dependencyLink;
 
-    private String runnerCode = "import io.unlogged.runner.UnloggedTestRunner;\n" +
-            "import org.junit.runner.RunWith;\n\n" +
-            "@RunWith(UnloggedTestRunner.class)\n" +
-            "public class UnloggedTest {\n" +
-            "}";
-
     //Services
     private final InsidiousService insidiousService;
     private final MultiModuleManager multiModuleManager;
@@ -76,7 +71,7 @@ public class TestRunnerInjector {
 
         addBordersToTextBoxes();
 
-        testRunnerText.setText(runnerCode);
+        testRunnerText.setText(CommonUtil.generateRunnerFileContent());
         initializeModuleDropDown();
         addInjectButtonActionListener();
 
@@ -116,27 +111,23 @@ public class TestRunnerInjector {
      * Copies the code to the clipboard based on the specified CopyType.
      * @param type the type of code to copy (RUNNER, MAVEN, or GRADLE)
      */
-    public void copyCode(CopyType type) {
+    private void copyCode(CopyType type) {
         if (type.equals(CopyType.RUNNER)) {
             insidiousService.copyToClipboard(testRunnerText.getText());
-            InsidiousNotification.notifyMessage("Copied to clipboard",
-                    NotificationType.INFORMATION);
         } else if(type.equals(CopyType.MAVEN)){
             insidiousService.copyToClipboard(mvnTestTextArea.getText());
-            InsidiousNotification.notifyMessage("Copied to clipboard",
-                    NotificationType.INFORMATION);
         } else {
             insidiousService.copyToClipboard(gradleTestTextArea.getText());
-            InsidiousNotification.notifyMessage("Copied to clipboard",
-                    NotificationType.INFORMATION);
         }
+        InsidiousNotification.notifyMessage("Copied to clipboard",
+                NotificationType.INFORMATION);
     }
 
     /**
      * Opens the CI documentation link in the default browser.
      * If Desktop is not supported, shows a notification with the link.
      */
-    public void routeToCiDocumentation() {
+    private void routeToCiDocumentation() {
         String link = "https://read.unlogged.io/cirunner/";
         if (Desktop.isDesktopSupported()) {
             try {
