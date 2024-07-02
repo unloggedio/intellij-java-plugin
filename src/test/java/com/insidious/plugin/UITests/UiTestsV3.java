@@ -85,18 +85,7 @@ public class UiTestsV3 {
     @Order(2)
     @Disabled
     public void runnerFile_injection_test_maven_demo() {
-
-        step("Open toolbar if not already open", () -> {
-            openUnloggedToolbarIfNotOpen(controller, 2);
-            backToMenuIfOpen(controller);
-        });
-        step("Inject Unlogged Test File", () -> {
-            injectUnloggedTestFile(controller, false);
-        });
-        step("Open the Test File", () -> {
-            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
-        });
-        Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+        runnerFileInjectionAndAssertion();
     }
 
     //remote mode start - start of remote chain tests for maven - demo
@@ -1180,18 +1169,7 @@ public class UiTestsV3 {
     @Order(24)
     @Disabled
     public void runnerFile_injection_test_gradle_demo() {
-
-        step("Open toolbar if not already open", () -> {
-            openUnloggedToolbarIfNotOpen(controller, 2);
-            backToMenuIfOpen(controller);
-        });
-        step("Inject Unlogged Test File", () -> {
-            injectUnloggedTestFile(controller, false);
-        });
-        step("Open the Test File", () -> {
-            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
-        });
-        Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+        runnerFileInjectionAndAssertion();
     }
 
 
@@ -1834,4 +1812,31 @@ public class UiTestsV3 {
 //            controller.waitForIndex();
 //        });
 //    }
+
+    private void runnerFileInjectionAndAssertion() {
+        step("Open toolbar if not already open", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+        });
+        step("Inject Unlogged Test File", () -> {
+            injectUnloggedTestFile(controller, false);
+            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
+            Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+        });
+        step("Inject Unlogged Test File again to see pop-up", () -> {
+            injectUnloggedTestFile(controller, false);
+            Assertions.assertTrue(controller.getIdeaFrame().getFileAlreadyInjectedBalloonNotification() != null);
+        });
+        step("Delete and re-inject Unlogged Test File", () -> {
+            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
+            controller.getKeyboard().hotKey(VK_META, VK_UP);
+            controller.getKeyboard().hotKey(VK_DELETE);
+            controller.getKeyboard().hotKey(VK_ENTER);
+            injectUnloggedTestFile(controller, false);
+            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
+            Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+
+        });
+
+    }
 }

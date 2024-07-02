@@ -125,6 +125,7 @@ public class UITestUtils {
         MY_TREE_COMPONENT("//div[@class='MyTree']"),
         NOTIFICATIONS_TAB("//div[@text='Notifications']"),
         TEST_GENERATION_FALIED_INDEX_POPUP("//div[@accessiblename='Test Generation can start only after indexing is complete!' and @class='JEditorPane']"),
+        FILE_ALREADY_INJECTED_POPUP("//div[@visible_text_keys='root.type.extensions']"),
         SDK_COMBO_BOX("//div[@class='SdkComboBox']"),
         GRADLE_OPTIONS_BUILD_WITH("//div[@accessiblename='Build and run using:' and @class='ComboBox']"),
         NOTIFICATIONS_CLEAR_ALL("//div[@text='Clear all']"),
