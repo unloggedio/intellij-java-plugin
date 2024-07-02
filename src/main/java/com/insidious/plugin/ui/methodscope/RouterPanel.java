@@ -102,7 +102,6 @@ public class RouterPanel implements ComponentProvider {
             @Override
             public void mouseClicked(MouseEvent e) {
                 routerListener.showDirectInvoke();
-
             }
         });
 

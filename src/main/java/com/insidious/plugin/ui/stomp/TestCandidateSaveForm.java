@@ -315,7 +315,6 @@ public class TestCandidateSaveForm implements ComponentProvider {
                     componentLifecycleListener.onClose();
                 });
 
-
             });
         });
 
@@ -972,7 +971,6 @@ public class TestCandidateSaveForm implements ComponentProvider {
         gbc.ipady = 0;
         return gbc;
     }
-
 
     private GridBagConstraints createGBCForFakeComponent(int i) {
         GridBagConstraints gbc = new GridBagConstraints();

@@ -54,6 +54,7 @@ import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
+import com.insidious.plugin.ui.testrunnerinjection.util.PopUpUtil;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.util.*;
@@ -324,10 +325,14 @@ final public class InsidiousService implements
                     if (project.isDisposed()) {
                         return;
                     }
-                    DumbService.getInstance(project)
-                            .runReadActionInSmartMode(() -> {
-                                populateFromEditors(event);
-                            });
+                    try {
+                        DumbService.getInstance(project)
+                                .runReadActionInSmartMode(() -> {
+                                    populateFromEditors(event);
+                                });
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 });
             }
         };
@@ -581,6 +586,7 @@ final public class InsidiousService implements
                 methodArgumentValues);
 //        directInvokeComponent.triggerExecute();
 
+        directInvokeComponent.renderForMethod(method, methodArgumentValues);
     }
 
     public void addAllTabs() {
@@ -768,7 +774,9 @@ final public class InsidiousService implements
 
             @Override
             public void runReplayTests() {
-                routeToCiDocumentation();
+                DumbService.getInstance(project).runWhenSmart(() -> {
+                    PopUpUtil.showTestRunnerPopUp(InsidiousService.this);
+                });
             }
 
             @Override
@@ -783,27 +791,7 @@ final public class InsidiousService implements
         SingleWindowView singleWindowView = new SingleWindowView(project);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
-
-
     }
-
-    public void routeToCiDocumentation() {
-        String link = "https://read.unlogged.io/cirunner/";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
-        } else {
-            InsidiousNotification.notifyMessage(
-                    "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
-                            "CLI/Maven/Gradle", NotificationType.INFORMATION);
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToGithub", null);
-    }
-
 
     public UnloggedClientInterface getClient() {
         return client;
