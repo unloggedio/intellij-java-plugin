@@ -8,8 +8,11 @@ import com.insidious.plugin.UITests.wrapper.JunitGenerationRequest;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
+import com.intellij.remoterobot.utils.Locators;
+import org.assertj.swing.fixture.JComboBoxFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
+import static java.time.Duration.*;
 
 import java.rmi.Remote;
 import java.util.List;
@@ -341,6 +344,15 @@ public class UiTestInteractionUtils {
         } else {
             junitDummyDataGeneration(controller, request);
         }
+    }
+
+    public static void injectUnloggedTestFile(RemoteRobotController controller, boolean isMultiModule) {
+        controller.getIdeaFrame().getRunReplayTestIcon().click();
+        if(isMultiModule) {
+            //TODO: Add selection using dropdown for multi-module
+        }
+        controller.getIdeaFrame().getInjectFileButton().click();
+        controller.getIdeaFrame().getInjectPopupCloseButton().click();
     }
 
     //reorder steps, make directInvoke only if candidates are not present

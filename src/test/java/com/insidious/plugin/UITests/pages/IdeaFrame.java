@@ -131,6 +131,18 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BOILERPLATE_TEST_SAVE_BUTTON);
     }
 
+    public ComponentFixture getRunReplayTestIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.RUN_REPLAY_TEST_ICON);
+    }
+
+    public ComponentFixture getInjectFileButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.INJECT_FILE_BUTTON);
+    }
+
+    public ComponentFixture getDropDownArrowButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.INJECT_DROP_DOWN_ARROW);
+    }
+
     public ComponentFixture getFilterButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_BUTTON_NEW);
     }
@@ -231,6 +243,10 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getMockPopupCloseButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_POPUP_CLOSE_ICON);
+    }
+
+    public ComponentFixture getInjectPopupCloseButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.INJECT_POP_UP_CLOSE_ICON);
     }
 
     public ComponentFixture getCreateNewMockButton() {

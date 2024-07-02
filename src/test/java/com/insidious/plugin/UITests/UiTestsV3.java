@@ -81,9 +81,27 @@ public class UiTestsV3 {
         });
     }
 
-    //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(2)
+    @Disabled
+    public void runnerFile_injection_test_maven_demo() {
+
+        step("Open toolbar if not already open", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+        });
+        step("Inject Unlogged Test File", () -> {
+            injectUnloggedTestFile(controller, false);
+        });
+        step("Open the Test File", () -> {
+            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
+        });
+        Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+    }
+
+    //remote mode start - start of remote chain tests for maven - demo
+    @Test
+    @Order(3)
     @Disabled
     public void local_mode_frequencey_logging_Test() {
         //add to other files
@@ -303,7 +321,7 @@ public class UiTestsV3 {
 
     //remote mode start - start of remote chain tests for maven - demo
     @Test
-    @Order(3)
+    @Order(4)
     @Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
@@ -389,7 +407,7 @@ public class UiTestsV3 {
 
     //remote mode start - debug DirectInvoke for this method
     @Test
-    @Order(4)
+    @Order(5)
     @Disabled
     public void serverIssue_14() {
         int projectIndex = 0;
@@ -417,7 +435,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     @Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
@@ -457,7 +475,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     @Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
@@ -480,7 +498,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     @Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
@@ -541,7 +559,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     @Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
@@ -564,7 +582,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     @Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
@@ -592,7 +610,7 @@ public class UiTestsV3 {
 
     //remote mode - ending case
     @Test
-    @Order(10)
+    @Order(11)
     @Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
@@ -640,7 +658,7 @@ public class UiTestsV3 {
     //------------------------------
     //local mode start and sanity
     @Test
-    @Order(11)
+    @Order(12)
     @Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
@@ -708,7 +726,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     @Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
@@ -766,7 +784,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     @Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
@@ -784,7 +802,7 @@ public class UiTestsV3 {
 
     //Server Issues Sheet - Issue 73
     @Test
-    @Order(14)
+    @Order(15)
     @Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
@@ -814,7 +832,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(15)
+    @Order(16)
     @Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
@@ -852,7 +870,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(16)
+    @Order(17)
     @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
@@ -878,7 +896,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(17)
+    @Order(18)
     @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
@@ -905,7 +923,7 @@ public class UiTestsV3 {
 
     //start in local mode - ending case
     @Test
-    @Order(18)
+    @Order(19)
     @Disabled
     public void serverIssue_46() {
         //set filter to remote mode
@@ -953,7 +971,7 @@ public class UiTestsV3 {
     //start in local mode
     //an ending case
     @Test
-    @Order(19)
+    @Order(20)
     @Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
@@ -1023,7 +1041,7 @@ public class UiTestsV3 {
     //start in local mode
     //an ending case
     @Test
-    @Order(20)
+    @Order(21)
     @Disabled
     public void serverIssue_37() {
         //set filter to remote mode
@@ -1090,7 +1108,7 @@ public class UiTestsV3 {
 
     //doesn't need project to start
     @Test
-    @Order(21)
+    @Order(22)
     @Disabled
     public void serverIssues_23() {
         int switchCount = 10;
@@ -1117,7 +1135,7 @@ public class UiTestsV3 {
     //----------------------------
     //switch to gradle project
     @Test
-    @Order(22)
+    @Order(23)
     @Disabled
     public void gradle_project_onboarding() {
         int projectIndex = 1;
@@ -1157,8 +1175,29 @@ public class UiTestsV3 {
         });
     }
 
+
     @Test
-    @Order(23)
+    @Order(24)
+    @Disabled
+    public void runnerFile_injection_test_gradle_demo() {
+        int projectIndex = 1;
+
+        step("Open toolbar if not already open", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+        });
+        step("Inject Unlogged Test File", () -> {
+            injectUnloggedTestFile(controller, false);
+        });
+        step("Open the Test File", () -> {
+            openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
+        });
+        Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+    }
+
+
+    @Test
+    @Order(25)
     @Disabled
     public void remote_mode_general_gradle() {
         int projectIndex = 1;
@@ -1230,7 +1269,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(24)
+    @Order(26)
     @Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
@@ -1296,7 +1335,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(25)
+    @Order(27)
     @Disabled
     public void replayCaseSave_sanity_remote_gradle() {
 
@@ -1325,7 +1364,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(26)
+    @Order(28)
     @Disabled
     public void run_mode_local_general_gradle() {
         int projectIndex = 1;
@@ -1392,7 +1431,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(27)
+    @Order(29)
     @Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
@@ -1457,7 +1496,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(28)
+    @Order(30)
     @Disabled
     public void replayCaseSave_sanity_local_gradle() {
         step("Clear filter and selections", () -> {
@@ -1479,7 +1518,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(29)
+    @Order(31)
     @Disabled
     public void close_LastProject() {
         step("Open readme file to prevent shortcut clash", () -> {
@@ -1492,7 +1531,7 @@ public class UiTestsV3 {
     //Add multimodule cases from multi-module-demo1
     //----------------
     @Test
-    @Order(30)
+    @Order(32)
     //@Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
@@ -1514,7 +1553,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(31)
+    @Order(33)
     //@Disabled
     public void multimodule_local_sanity_multimodule() {
         int projectIndex = 2;
@@ -1652,7 +1691,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(32)
+    @Order(34)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
