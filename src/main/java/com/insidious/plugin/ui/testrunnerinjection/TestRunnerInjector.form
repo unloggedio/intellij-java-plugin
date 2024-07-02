@@ -8,8 +8,8 @@
     <properties>
       <font size="14"/>
       <maximumSize width="2147483647" height="2147483647"/>
-      <minimumSize width="471" height="500"/>
-      <preferredSize width="471" height="500"/>
+      <minimumSize width="471" height="580"/>
+      <preferredSize width="471" height="580"/>
     </properties>
     <clientProperties>
       <html.disable class="java.lang.Boolean" value="false"/>
