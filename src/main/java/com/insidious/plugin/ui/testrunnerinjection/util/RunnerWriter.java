@@ -73,7 +73,7 @@ public class RunnerWriter {
      * @param runnerFile the file to write the contents into
      */
     private void writeContentsInFile(File runnerFile) {
-        String runnerFileContent = generateRunnerFileContent();
+        String runnerFileContent = CommonUtil.generateRunnerFileContent() + "\n";
         try (FileOutputStream fileOutputStream = new FileOutputStream(runnerFile)) {
             fileOutputStream.write(runnerFileContent.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
@@ -116,18 +116,5 @@ public class RunnerWriter {
         String desiredPath = desiredDirectoryPath + separator + testFileName;
         File runnerFile = new File(desiredPath);
         return runnerFile;
-    }
-
-    /**
-     * Generates the content for the test runner file.
-     *
-     * @return the content string for the test runner file
-     */
-    private String generateRunnerFileContent() {
-        return "import io.unlogged.runner.UnloggedTestRunner;\n" +
-                "import org.junit.runner.RunWith;\n\n" +
-                "@RunWith(UnloggedTestRunner.class)\n" +
-                "public class UnloggedTest {\n" +
-                "}\n";
     }
 }
