@@ -12,6 +12,7 @@ import com.intellij.remoterobot.utils.Locators;
 import org.assertj.swing.fixture.JComboBoxFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
+
 import static java.time.Duration.*;
 
 import java.rmi.Remote;
@@ -199,9 +200,18 @@ public class UiTestInteractionUtils {
         RemoteText text = textEditorFixture.getEditor().getData().getAll().get(0);
         text.click();
 
-        controller.getKeyboard().hotKey(VK_ALT, VK_META, VK_Z);
         pause(ofMillis(250).toMillis());
-        controller.getIdeaFrame().getGitRollbackButton().click();
+
+        controller.getKeyboard().hotKey(VK_ALT, VK_META, VK_Z);
+        pause(ofMillis(750).toMillis());
+        try {
+            controller.getIdeaFrame().getGitRollbackButton().click();
+        } catch (Exception e) {
+            //try again
+            controller.getKeyboard().hotKey(VK_ALT, VK_META, VK_Z);
+            pause(ofMillis(750).toMillis());
+            controller.getIdeaFrame().getGitRollbackButton().click();
+        }
         pause(ofSeconds(1).toMillis());
     }
 
@@ -348,10 +358,13 @@ public class UiTestInteractionUtils {
 
     public static void injectUnloggedTestFile(RemoteRobotController controller, boolean isMultiModule) {
         controller.getIdeaFrame().getRunReplayTestIcon().click();
-        if(isMultiModule) {
+        if (isMultiModule) {
             //TODO: Add selection using dropdown for multi-module
         }
         controller.getIdeaFrame().getInjectFileButton().click();
+        pause(ofMillis(500).toMillis());
+        controller.getIdeaFrame().getInjectPopupCloseButton().moveMouse();
+        pause(ofMillis(250).toMillis());
         controller.getIdeaFrame().getInjectPopupCloseButton().click();
     }
 
