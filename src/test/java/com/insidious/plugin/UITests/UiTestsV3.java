@@ -83,7 +83,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(2)
-    @Disabled
+    //@Disabled
     public void runnerFile_injection_test_maven_demo() {
         runnerFileInjectionAndAssertion();
     }
@@ -91,7 +91,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(3)
-    @Disabled
+    //@Disabled
     public void local_mode_frequencey_logging_Test() {
         //add to other files
         int projectIndex = 0;
@@ -286,7 +286,7 @@ public class UiTestsV3 {
 
                 backToMenuIfOpen(controller);
                 controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                pause(ofSeconds(1).toMillis());
+                pause(ofSeconds(5).toMillis());
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                 //There should be 3 candidates (function overloading)
