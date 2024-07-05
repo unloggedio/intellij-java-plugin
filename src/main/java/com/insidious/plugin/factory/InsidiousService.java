@@ -50,6 +50,7 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.ui.payment.GetPremiumPanel;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
@@ -175,7 +176,8 @@ final public class InsidiousService implements
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
-    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout());
+    private final GetPremiumPanel getPremiumPanel = new GetPremiumPanel(this);
+    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout(), getPremiumPanel);
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
