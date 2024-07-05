@@ -36,7 +36,7 @@ public class CandidateMetadataFactory {
                 .getTestSubject();
 
 
-        Collection<MethodCallExpression> callToMock = new ArrayList<>();
+        Collection<MethodCallExpression> callsToMock = new ArrayList<>();
         Set<MethodCallExpression> staticCallsList = new HashSet<>();
 
 //        Map<String, Boolean> mockedStaticTypes = new HashMap<>();
@@ -97,13 +97,13 @@ public class CandidateMetadataFactory {
             }
 
             // finally add this call in the list of calls that will be actually mocked
-            callToMock.add(e);
+            callsToMock.add(e);
 
         }
 
-        if (callToMock.size() > 0) {
+        if (callsToMock.size() > 0) {
 
-            Map<String, List<MethodCallExpression>> grouped = callToMock.stream()
+            Map<String, List<MethodCallExpression>> grouped = callsToMock.stream()
                     .collect(Collectors.groupingBy(e -> e.getSubject()
                                     .getValue() + e.getMethodName() + buildCallSignature(e),
                             Collectors.toList()));
@@ -142,7 +142,7 @@ public class CandidateMetadataFactory {
 
                     methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     if (firstCall) {
-                        methodCallExpression.writeCommentTo(objectRoutineScript);
+//                        methodCallExpression.writeCommentTo(objectRoutineScript);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
@@ -205,8 +205,7 @@ public class CandidateMetadataFactory {
                     childParameter.setType(staticCallSubjectMockInstance.getType());
                     subjectStaticFieldMock.setType("org.mockito.MockedStatic");
                     childParameter.setName("E");
-                    subjectStaticFieldMock.getTemplateMap()
-                            .add(childParameter);
+                    subjectStaticFieldMock.getTemplateMap().add(childParameter);
 
                     // set the name for this parameter forced.
                     nameFactory.setNameForParameter(subjectStaticFieldMock, staticCallSubjectMockInstance.getName());
@@ -227,7 +226,7 @@ public class CandidateMetadataFactory {
                             objectRoutineScript, testConfiguration, testGenerationState);
 
                     if (firstCall) {
-                        methodCallExpression.writeCommentTo(objectRoutineScript);
+//                        methodCallExpression.writeCommentTo(objectRoutineScript);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
@@ -277,16 +276,17 @@ public class CandidateMetadataFactory {
             if (mainMethod.isMethodPublic() && mainMethod.getReturnValue() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             } else {
-                objectRoutineScript.addComment("Testing private methods in not a recommended practice");
+                objectRoutineScript.addComment("Testing non-public methods in not a recommended practice");
                 objectRoutineScript.addComment("Cannot invoke private method directly, but we can use reflection");
                 MethodCallExpression reflectedMethod = new MethodCallExpression();
 
                 List<Object> argsList = new ArrayList<>();
-                StringBuilder statement = new StringBuilder("$T $L = $T.forName($T.class).getMethod($S");
+                // note that getMethod bracket isnt closed. it will be closed after parameters
+                StringBuilder statement = new StringBuilder("$T $L = $T.forName($S).getMethod($S");
                 argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.reflect.Method"));
                 argsList.add("methodInstance");
                 argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.Class"));
-                argsList.add(ClassTypeUtils.createTypeFromNameString(mainMethod.getSubject().getType()));
+                argsList.add(mainMethod.getSubject().getType());
                 argsList.add(mainMethod.getMethodName());
 //                Class.forName("").getMethod()
                 List<Parameter> arguments = new ArrayList<>();
@@ -345,10 +345,12 @@ public class CandidateMetadataFactory {
 
 
                 List<Object> argsList2 = new ArrayList<>();
-                StringBuilder methodExecuteBuilder = new StringBuilder("$T $L = $L.invoke($L");
+                StringBuilder methodExecuteBuilder = new StringBuilder("$T $L = ($T) $L.invoke($L");
 
                 argsList2.add(ClassTypeUtils.createTypeFromNameString(returnParameter.getType()));
                 argsList2.add(returnParameter.getName());
+                // will need to cast object
+                argsList2.add(ClassTypeUtils.createTypeFromNameString(returnParameter.getType()));
 
 
                 argsList2.add("methodInstance");

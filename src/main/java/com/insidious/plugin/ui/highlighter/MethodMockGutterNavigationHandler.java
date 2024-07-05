@@ -5,15 +5,15 @@ import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.*;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ArrayUtil;
+import com.intellij.util.Processor;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -133,6 +133,8 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
             MockDefinitionListPanel gutterMethodPanel = new MockDefinitionListPanel(methodCallExpression);
 
             JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
+            Dimension max = gutterMethodComponent.getMaximumSize();
+            gutterMethodComponent.setMaximumSize(new Dimension((int) max.getWidth(), 650));
 
             ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                     .createComponentPopupBuilder(gutterMethodComponent, null);
@@ -142,19 +144,24 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                     .setShowBorder(true)
                     .setShowShadow(true)
                     .setFocusable(true)
-                    .setMinSize(new Dimension(600, -1))
+                    .setCancelButton(new IconButton("Close", AllIcons.Actions.CloseDarkGrey))
+                    .setCancelKeyEnabled(true)
+                    .setMovable(true)
                     .setRequestFocus(true)
                     .setResizable(true)
-                    .setCancelOnClickOutside(true)
-                    .setCancelOnOtherWindowOpen(true)
-                    .setCancelKeyEnabled(true)
-//                .setCancelButton(gutterMethodPanel.getCloseButton())
-                    .setBelongsToGlobalPopupStack(false)
-                    .setTitle("Manage Mocks")
+                    .setCancelOnClickOutside(false)
+                    .setCancelOnOtherWindowOpen(false)
+                    .setCancelOnWindowDeactivation(false)
+                    .setBelongsToGlobalPopupStack(true)
+                    .setTitle("Unlogged Mocks")
                     .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
                     .createPopup();
-            componentPopUp.show(new RelativePoint(mouseEvent));
+            componentPopUp.showCenteredInCurrentWindow(insidiousService.getProject());
             gutterMethodPanel.setPopupHandle(componentPopUp);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Dimension size = componentPopUp.getSize();
+                componentPopUp.setSize(new Dimension((int) size.getWidth(), (int) Math.min(650, size.getHeight())));
+            });
 
 
         }

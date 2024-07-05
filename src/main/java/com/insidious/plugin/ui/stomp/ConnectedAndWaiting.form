@@ -16,7 +16,6 @@
           <font size="12"/>
           <horizontalAlignment value="2"/>
           <horizontalTextPosition value="11"/>
-          <icon value="icons/png/record-circle-fill.png"/>
           <text value="Live..."/>
         </properties>
       </component>

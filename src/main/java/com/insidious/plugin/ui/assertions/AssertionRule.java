@@ -1,42 +1,51 @@
 package com.insidious.plugin.ui.assertions;
 
-import com.insidious.plugin.assertions.AssertionResult;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
-import com.insidious.plugin.assertions.Expression;
+import com.insidious.plugin.assertions.KeyValue;
+import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.DocumentAdapter;
-
+import com.intellij.openapi.project.Project;
+import com.intellij.ui.JBColor;
+import com.intellij.uiDesigner.core.GridConstraints;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import java.awt.event.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
+import java.util.function.Supplier;
 
 public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
     private final AssertionBlock manager;
     private final AtomicAssertion assertion;
+    private final Project project;
     private JPanel mainPanel;
     private JPanel topAligner;
     private JLabel nameSelector;
-    private JLabel operationSelector;
-    private JLabel valueField;
-    private JButton trashButton;
+    private JLabel trashButton;
+    private JPanel nameSelectorContainerPanel;
+    private AssertionRuleEditPanel editPanel;
 
-    public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion) {
-        this.assertion = atomicAssertion;
+    public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion1, Project project) {
+        this.assertion = atomicAssertion1;
+        this.project = project;
+        if (assertion.getAssertionType() == null) {
+            assertion.setAssertionType(AssertionType.EQUAL);
+        }
+        nameSelectorContainerPanel.setBackground(JBColor.WHITE);
+        topAligner.setBackground(JBColor.WHITE);
+        mainPanel.setBackground(JBColor.WHITE);
+
+
         this.manager = assertionBlock;
 
-        this.nameSelector.setText(atomicAssertion.getKey() != null ? atomicAssertion.getKey() : "Nothing selected");
 
-//        Color currentBackgroundColor = nameSelector.getBackground();
-//        nameSelector.setEditable(false);
-//        nameSelector.setBackground(currentBackgroundColor);
-//        nameSelector.setBackground(JBColor.BLACK);
-//        nameSelector.setOpaque(true);
-//        nameSelector.repaint();
         nameSelector.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -54,13 +63,223 @@ public class AssertionRule {
             }
         });
 
-        this.valueField.setText(atomicAssertion.getExpectedValue() != null ? atomicAssertion.getExpectedValue() : "");
 
         setupOptions();
-        if (atomicAssertion.getAssertionType() == null) {
-            atomicAssertion.setAssertionType(AssertionType.EQUAL);
-        }
 
+
+        nameSelector.setBackground(JBColor.WHITE);
+        updateLabel();
+//        this.valueField.setText("<html><pre>" + text + "</pre></html>");
+
+
+//        operationSelector.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                String selectedItem = (String) operationSelector.getText();
+//                logger.warn("Operator selected: " + selectedItem);
+//                switch (selectedItem) {
+//                    case "is":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.EQUAL);
+//                        break;
+//                    case "is not":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
+//                        break;
+//                    case ">":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.GREATER_THAN);
+//                        break;
+//                    case "<":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.LESS_THAN);
+//                        break;
+//                    case "<=":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.LESS_THAN_OR_EQUAL);
+//
+//                        break;
+//                    case ">=":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.GREATER_THAN_OR_EQUAL);
+//                        break;
+//
+//                    case "is null":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NULL);
+//                        break;
+//                    case "is not null":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_NULL);
+//                        break;
+//                    case "is empty":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.EMPTY);
+//                        break;
+//                    case "is not empty":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_EMPTY);
+//                        break;
+//
+//                    case "is true":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.TRUE);
+//                        break;
+//                    case "is false":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.FALSE);
+//                        break;
+//
+//                    case "size is":
+//                        assertion.setExpression(Expression.SIZE);
+//                        assertion.setAssertionType(AssertionType.EQUAL);
+//                        break;
+//                    case "size is not":
+//                        assertion.setExpression(Expression.SIZE);
+//                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
+//                        break;
+//
+//                    case "length is":
+//                        assertion.setExpression(Expression.LENGTH);
+//                        assertion.setAssertionType(AssertionType.EQUAL);
+//                        break;
+//                    case "length is not":
+//                        assertion.setExpression(Expression.LENGTH);
+//                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
+//                        break;
+//                    case "contains key in object":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.CONTAINS_KEY);
+//                        break;
+//                    case "contains item in array":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.CONTAINS_ITEM);
+//                        break;
+//                    case "not contains item in array":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_ITEM);
+//                        break;
+//                    case "contains substring":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.CONTAINS_STRING);
+//                        break;
+//                    case "not contains key in object":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_KEY);
+//                        break;
+//                    case "not contains substring":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_STRING);
+//                        break;
+//                    case "matches regex":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.MATCHES_REGEX);
+//                        break;
+//                    case "not matches regex":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_MATCHES_REGEX);
+//                        break;
+//                    case "equals ignore case":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
+//                        break;
+//                    case "starts with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.STARTS_WITH);
+//                        break;
+//                    case "not starts with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_STARTS_WITH);
+//                        break;
+//                    case "ends with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.ENDS_WITH);
+//                        break;
+//                    case "not ends with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_ENDS_WITH);
+//                        break;
+//
+//                }
+////                updateResult();
+//            }
+//        });
+
+        trashButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        trashButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                deleteRule();
+            }
+        });
+//        updateResult();
+    }
+
+    @NotNull
+    private static String trimValue(String expectedValue) {
+        String text = expectedValue != null ? expectedValue : "";
+        if (text.length() > 40) {
+            text = text.substring(0, 37) + "...";
+        }
+        return text;
+    }
+
+    private void updateLabel() {
+        nameSelector.setText(
+                "<html><pre>" + assertion.getKey() + " " + getOperationText(assertion) + " " + trimValue(
+                        assertion.getExpectedValue()) + "</pre></html>");
+    }
+
+    public void showEditForm(Supplier<List<KeyValue>> keyValueSupplier) {
+        nameSelectorContainerPanel.removeAll();
+        editPanel = getEditPanel(keyValueSupplier);
+
+        nameSelectorContainerPanel.add(editPanel.getComponent(), new GridConstraints());
+        nameSelectorContainerPanel.revalidate();
+        nameSelectorContainerPanel.repaint();
+    }
+
+    @NotNull
+    private AssertionRuleEditPanel getEditPanel(Supplier<List<KeyValue>> keyValueSupplier) {
+        return new AssertionRuleEditPanel(assertion, new ItemLifeCycleListener<>() {
+            @Override
+            public void onSelect(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onClick(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onUnSelect(AtomicAssertion item) {
+                hideEditForm();
+            }
+
+            @Override
+            public void onDelete(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onEdit(AtomicAssertion item) {
+                hideEditForm();
+            }
+        }, keyValueSupplier, project);
+    }
+
+    public void hideEditForm() {
+        nameSelectorContainerPanel.removeAll();
+        updateLabel();
+        nameSelectorContainerPanel.add(nameSelector, new GridConstraints());
+        nameSelectorContainerPanel.revalidate();
+        nameSelectorContainerPanel.repaint();
+    }
+
+    private String getOperationText(AtomicAssertion atomicAssertion) {
+        String text;
+        text = "";
         switch (atomicAssertion.getAssertionType()) {
 
             case ALLOF:
@@ -78,250 +297,94 @@ public class AssertionRule {
             case EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
-                        operationSelector.setText("is");
+                        String operatorText = "is";
+                        text = getOperatorText(operatorText);
                         break;
                     case SIZE:
-                        operationSelector.setText("size is");
+                        text = getOperatorText("size is");
                         break;
                     case LENGTH:
-                        operationSelector.setText("length is");
+                        text = getOperatorText("length is");
                         break;
                 }
                 break;
             case EQUAL_IGNORE_CASE:
-                operationSelector.setText("equals ignore case");
+                text = getOperatorText("equals ignore case");
                 break;
             case NOT_EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
-                        operationSelector.setText("is not");
+                        text = getOperatorText("is not");
                         break;
                     case SIZE:
-                        operationSelector.setText("size is not");
+                        text = getOperatorText("size is not");
                         break;
                     case LENGTH:
-                        operationSelector.setText("length is not");
+                        text = getOperatorText("length is not");
                         break;
                 }
 
                 break;
             case FALSE:
-                operationSelector.setText("is false");
+                text = getOperatorText("is false");
                 break;
             case MATCHES_REGEX:
-                operationSelector.setText("matches regex");
+                text = getOperatorText("matches regex");
                 break;
             case NOT_MATCHES_REGEX:
-                operationSelector.setText("not matches regex");
+                text = getOperatorText("not matches regex");
                 break;
             case TRUE:
-                operationSelector.setText("is true");
+                text = getOperatorText("is true");
                 break;
             case LESS_THAN:
-                operationSelector.setText("<");
+                text = getOperatorText("<");
                 break;
             case LESS_THAN_OR_EQUAL:
-                operationSelector.setText("<=");
+                text = getOperatorText("<=");
                 break;
             case GREATER_THAN:
-                operationSelector.setText(">");
+                text = getOperatorText(">");
                 break;
             case GREATER_THAN_OR_EQUAL:
-                operationSelector.setText(">=");
+                text = getOperatorText(">=");
                 break;
             case NOT_NULL:
-                operationSelector.setText("is not null");
+                text = getOperatorText("is not null");
                 break;
             case NULL:
-                operationSelector.setText("is null");
+                text = getOperatorText("is null");
                 break;
             case EMPTY:
-                operationSelector.setText("is empty");
+                text = getOperatorText("is empty");
                 break;
             case NOT_EMPTY:
-                operationSelector.setText("is not empty");
+                text = getOperatorText("is not empty");
                 break;
             case CONTAINS_KEY:
-                operationSelector.setText("contains key in object");
+                text = getOperatorText("contains key in object");
                 break;
             case CONTAINS_ITEM:
-                operationSelector.setText("contains item in array");
+                text = getOperatorText("contains item in array");
                 break;
             case NOT_CONTAINS_ITEM:
-                operationSelector.setText("not contains item in array");
+                text = getOperatorText("not contains item in array");
                 break;
             case CONTAINS_STRING:
-                operationSelector.setText("contains substring");
+                text = getOperatorText("contains substring");
                 break;
             case NOT_CONTAINS_KEY:
-                operationSelector.setText("not contains key in object");
+                text = getOperatorText("not contains key in object");
                 break;
             case NOT_CONTAINS_STRING:
-                operationSelector.setText("not contains substring");
+                text = getOperatorText("not contains substring");
                 break;
         }
-
-        operationSelector.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                String selectedItem = (String) operationSelector.getText();
-                logger.warn("Operator selected: " + selectedItem);
-                switch (selectedItem) {
-                    case "is":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.EQUAL);
-                        break;
-                    case "is not":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
-                        break;
-                    case ">":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.GREATER_THAN);
-                        break;
-                    case "<":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.LESS_THAN);
-                        break;
-                    case "<=":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.LESS_THAN_OR_EQUAL);
-
-                        break;
-                    case ">=":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.GREATER_THAN_OR_EQUAL);
-                        break;
-
-                    case "is null":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NULL);
-                        break;
-                    case "is not null":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_NULL);
-                        break;
-                    case "is empty":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.EMPTY);
-                        break;
-                    case "is not empty":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_EMPTY);
-                        break;
-
-                    case "is true":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.TRUE);
-                        break;
-                    case "is false":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.FALSE);
-                        break;
-
-                    case "size is":
-                        assertion.setExpression(Expression.SIZE);
-                        assertion.setAssertionType(AssertionType.EQUAL);
-                        break;
-                    case "size is not":
-                        assertion.setExpression(Expression.SIZE);
-                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
-                        break;
-
-                    case "length is":
-                        assertion.setExpression(Expression.LENGTH);
-                        assertion.setAssertionType(AssertionType.EQUAL);
-                        break;
-                    case "length is not":
-                        assertion.setExpression(Expression.LENGTH);
-                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
-                        break;
-                    case "contains key in object":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.CONTAINS_KEY);
-                        break;
-                    case "contains item in array":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.CONTAINS_ITEM);
-                        break;
-                    case "not contains item in array":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_ITEM);
-                        break;
-                    case "contains substring":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.CONTAINS_STRING);
-                        break;
-                    case "not contains key in object":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_KEY);
-                        break;
-                    case "not contains substring":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_STRING);
-                        break;
-                    case "matches regex":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.MATCHES_REGEX);
-                        break;
-                    case "not matches regex":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_MATCHES_REGEX);
-                        break;
-                    case "equals ignore case":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
-                        break;
-                    case "starts with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.STARTS_WITH);
-                        break;
-                    case "not starts with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_STARTS_WITH);
-                        break;
-                    case "ends with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.ENDS_WITH);
-                        break;
-                    case "not ends with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_ENDS_WITH);
-                        break;
-
-                }
-                updateResult();
-            }
-        });
-
-
-//        valueField.setCaretPosition(0);
-//        valueField.getDocument().addDocumentListener(new DocumentAdapter() {
-//            @Override
-//            protected void textChanged( DocumentEvent e) {
-//                logger.warn("Value field updated: " + valueField.getText().trim());
-//                assertion.setExpectedValue(valueField.getText().trim());
-//                updateResult();
-//            }
-//        });
-
-        trashButton.addActionListener(e -> deleteRule());
-        updateResult();
+        return text;
     }
 
-    public void updateResult() {
-        AssertionResult thisResult = manager.executeAssertion(assertion);
-        Boolean result = thisResult.getResults().get(assertion.getId());
-        if (result) {
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.PASSING_COLOR));
-            topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-//            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
-//            leftAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
-        } else {
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.FAILING_COLOR));
-            topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-//            leftAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
-        }
+    private String getOperatorText(String operatorText) {
+        return operatorText;
     }
 
     public AssertionBlock getBlock() {
@@ -387,4 +450,14 @@ public class AssertionRule {
         return assertion;
     }
 
+    public void saveEdit() {
+        if (editPanel != null) {
+            AtomicAssertion assertionRule = editPanel.getUpdatedValue();
+            assertion.setAssertionType(assertionRule.getAssertionType());
+            assertion.setKey(assertionRule.getKey());
+            assertion.setExpectedValue(assertionRule.getExpectedValue());
+            hideEditForm();
+            editPanel = null;
+        }
+    }
 }

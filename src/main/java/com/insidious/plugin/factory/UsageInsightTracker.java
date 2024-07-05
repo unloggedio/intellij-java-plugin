@@ -2,8 +2,10 @@ package com.insidious.plugin.factory;
 
 import com.amplitude.Amplitude;
 import com.amplitude.Event;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.PermanentInstallationID;
+import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONObject;
 
 import java.util.*;
@@ -22,13 +24,15 @@ public class UsageInsightTracker {
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
-            "Amogh",
+            "akshatjain",
+            "rssamarth",
             "testerfresher",
             "short-kt"
     );
     private final long sessionId = new Date().getTime();
     private final AtomicInteger eventId = new AtomicInteger();
     private boolean shutdown = false;
+    private static final Logger logger = LoggerUtil.getInstance(UsageInsightTracker.class);
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
@@ -50,6 +54,7 @@ public class UsageInsightTracker {
     }
 
     public void RecordEvent(String eventName, JSONObject eventProperties) {
+        logger.warn("RecordEvent [" + eventName + "]");
         if (shutdown || UsersToSkip.contains(HOSTNAME)) {
             return;
         }

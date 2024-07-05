@@ -3,7 +3,7 @@ package com.insidious.plugin.ui.assertions;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
@@ -40,7 +40,7 @@ public class MockValueMap {
         // todo: check if methodCallExpressions is null
         List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
                 .filter(e -> ApplicationManager.getApplication().runReadAction(
-                        (Computable<Boolean>) () -> MockMethodLineHighlighter.isNonStaticDependencyCall(e)))
+                        (Computable<Boolean>) () -> ClassTypeUtils.isNonStaticDependencyCall(e)))
                 .collect(Collectors.toList());
 
         for (PsiMethodCallExpression local : mockableCallExpressions) {

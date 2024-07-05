@@ -18,7 +18,7 @@ import java.util.zip.ZipInputStream;
 
 import static com.insidious.plugin.Constants.PENDING;
 
-class ZipConsumer implements Runnable {
+public class ZipConsumer implements Runnable {
 
     private static final Logger logger = LoggerUtil.getInstance(ZipConsumer.class);
     private final DaoService daoService;
@@ -31,7 +31,7 @@ class ZipConsumer implements Runnable {
     private AtomicBoolean isChecking = new AtomicBoolean(false);
     private boolean stop;
 
-    ZipConsumer(DaoService daoService, File sessionDirectory, SessionInstance sessionInstance) {
+    public ZipConsumer(DaoService daoService, File sessionDirectory, SessionInstance sessionInstance) {
         this.daoService = daoService;
         this.sessionInstance = sessionInstance;
         this.sessionDirectory = sessionDirectory;

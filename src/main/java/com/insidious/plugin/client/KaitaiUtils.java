@@ -2,6 +2,7 @@ package com.insidious.plugin.client;
 
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.*;
+import com.insidious.plugin.pojo.dao.ProbeInfo;
 
 
 import java.util.stream.Collectors;
@@ -10,7 +11,7 @@ public class KaitaiUtils {
 
     private final static Descriptor[] DescriptorValues = Descriptor.values();
 
-    
+
     public static DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
 //        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
 
@@ -27,13 +28,53 @@ public class KaitaiUtils {
             instructionIndex = -1;
         }
 
+        int intExact = 0;
+        try {
+
+            intExact = Math.toIntExact(lineNumber);
+        }catch (ArithmeticException arithmeticException) {
+            arithmeticException.printStackTrace();
+        }
         return new DataInfo(Math.toIntExact(e.classId()), Math.toIntExact(e.methodId()),
                 Math.toIntExact(e.dataId()),
-                Math.toIntExact(lineNumber),
+                intExact,
                 Math.toIntExact(instructionIndex),
                 eventType,
                 valueDesc,
                 e.attributes().value());
+    }
+
+
+    public static DataInfo toDataInfo(ProbeInfo probeInfo) {
+//        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
+
+        Descriptor valueDesc = DescriptorValues[probeInfo.getValueDesc().ordinal()];
+//        if (!descriptorValue.startsWith("L")) {
+//            valueDesc = Descriptor.get(descriptorValue);
+//        }
+        long lineNumber = probeInfo.getLine();
+
+        EventType eventType = EventType.valueOf(probeInfo.getEventType().name());
+        long instructionIndex = probeInfo.getInstructionIndex();
+        if (eventType.equals(EventType.RESERVED)) {
+            lineNumber = -1;
+            instructionIndex = -1;
+        }
+
+        int intExact = 0;
+        try {
+
+            intExact = Math.toIntExact(lineNumber);
+        }catch (ArithmeticException arithmeticException) {
+            arithmeticException.printStackTrace();
+        }
+        return new DataInfo(Math.toIntExact(probeInfo.getClassId()), Math.toIntExact(probeInfo.getMethodId()),
+                Math.toIntExact(probeInfo.getProbeId()),
+                intExact,
+                Math.toIntExact(instructionIndex),
+                eventType,
+                valueDesc,
+                probeInfo.getAttributes());
     }
 
 
@@ -67,7 +108,7 @@ public class KaitaiUtils {
 //    }
 
 
-    
+
     public static ClassInfo toClassInfo(KaitaiInsidiousClassWeaveParser.ClassInfo classInfo) {
         String[] interfaceList = classInfo.interfaceNames()
                 .stream()
@@ -87,7 +128,7 @@ public class KaitaiUtils {
         );
     }
 
-    
+
     public static MethodInfo toMethodInfo(
             KaitaiInsidiousClassWeaveParser.MethodInfo e, String className) {
         return new MethodInfo(

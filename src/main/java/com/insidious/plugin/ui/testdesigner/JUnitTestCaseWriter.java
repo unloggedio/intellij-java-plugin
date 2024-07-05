@@ -14,11 +14,13 @@ import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiFile;
@@ -28,12 +30,12 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
 import org.apache.commons.io.IOUtils;
 
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -126,10 +128,10 @@ public class JUnitTestCaseWriter {
                     List<Problem> problems = parseResult.getProblems();
                     for (int i = 0; i < problems.size(); i++) {
                         Problem problem = problems.get(i);
-                        logger.error("Problem [" + i + "] => " + problem);
+                        logger.warn("Problem [" + i + "] => " + problem);
                     }
 
-                    InsidiousNotification.notifyMessage("Failed to parse test case to write " +
+                    InsidiousNotification.notifyMessage("Failed to save test case: " +
                             parseResult.getProblems(), NotificationType.ERROR
                     );
                     return null;
@@ -160,7 +162,7 @@ public class JUnitTestCaseWriter {
                 logger.info("[ERROR] Failed to save UnloggedUtils to correct spot.");
             }
 
-             VirtualFile newFile = VirtualFileManager.getInstance()
+            VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(FileSystems.getDefault()
                             .getPath(testcaseFile.getAbsolutePath())
                             .toUri()
@@ -173,10 +175,19 @@ public class JUnitTestCaseWriter {
 
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
-            FileContentUtil.reparseFiles(project, newFile1, true);
-             Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
-            FileEditorManager.getInstance(project).openFile(newFile, true, true);
+            CountDownLatch countDownLatch = new CountDownLatch(1);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    FileEditorManager.getInstance(project).openFile(newFile, true, false);
+                    countDownLatch.countDown();
+                });
+            });
+            try {
+                countDownLatch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             return newFile;
@@ -190,8 +201,9 @@ public class JUnitTestCaseWriter {
                 .replaceFirst("Test", ""));
         sb.deleteCharAt(sb.length() - 1);
 
-        PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb + ".java",
-                GlobalSearchScope.projectScope(project));
+        PsiFile[] classBase = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiFile[]>) () -> FilenameIndex.getFilesByName(project, sb + ".java",
+                        GlobalSearchScope.projectScope(project)));
 
         if (classBase.length > 0) {
             if (classBase.length > 1) {
@@ -200,7 +212,8 @@ public class JUnitTestCaseWriter {
                     PsiFile file = classBase[i];
                     if (file instanceof PsiJavaFile) {
                         PsiJavaFile psiJavaFile = (PsiJavaFile) file;
-                        String packageName = psiJavaFile.getPackageName();
+                        String packageName = ApplicationManager.getApplication().runReadAction(
+                                (Computable<String>) psiJavaFile::getPackageName);
                         if (testCaseScript.getPackageName()
                                 .equals(packageName)) {
                             return getBasePathForVirtualFile(classBase[i].getVirtualFile());
@@ -244,7 +257,7 @@ public class JUnitTestCaseWriter {
                     .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
-                 VirtualFile oldFileInstance = VirtualFileManager.getInstance()
+                VirtualFile oldFileInstance = VirtualFileManager.getInstance()
                         .refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
@@ -254,7 +267,7 @@ public class JUnitTestCaseWriter {
                 if (oldFileInstance != null) {
                     oldFileInstance.refresh(true, false);
                 }
-                 VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
+                VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
                         .refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
@@ -305,8 +318,9 @@ public class JUnitTestCaseWriter {
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
-         VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
+        VirtualFile newFile = VirtualFileManager.getInstance()
+                .refreshAndFindFileByUrl(
+                        FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
 
         if (newFile == null) {
             InsidiousNotification.notifyMessage("UnloggedTestUtil file was not created: "

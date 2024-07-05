@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
@@ -11,166 +12,152 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.factory.CandidateSearchQuery;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
+import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.KeyStrokeAdapter;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.treeStructure.Tree;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
-import javax.swing.event.TreeModelEvent;
-import javax.swing.event.TreeModelListener;
-import javax.swing.tree.*;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.*;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
 
-public class MethodDirectInvokeComponent implements ActionListener {
+public class MethodDirectInvokeComponent
+        implements Disposable, ComponentProvider {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
-    //    private static final ActionListener NOP_KEY_ADAPTER = e -> {
-//    };
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
+    //    private final RouterPanel routerPanel;
     private JPanel mainContainer;
-    private JPanel actionControlPanel;
-    private JTextArea returnValueTextArea;
-    private JPanel methodParameterScrollContainer;
-    //    private JPanel scrollerContainer;
-    //    private JLabel methodNameLabel;
-    private JButton executeButton;
-    private JButton createJUnitBoilerplateButton;
-    private JLabel candidateCountLinkLabel;
-    private JPanel candidateCountPanel;
-    private JPanel candidateCountPanelParent;
-    private JPanel candidateCountLinkLabelParent;
-    private JLabel coveragePercentLabel;
-    private JButton modifyArgumentsButton;
-    private JLabel closeButton;
-    private JLabel createBoilerPlate;
+    private Editor returnValueTextArea;
+    private JButton createBoilerplateButton;
+    private JPanel centerPanel;
     private MethodAdapter methodElement;
-    //    private Font SOURCE_CODE = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/fonts" +
-//            "/SourceCodePro-Regular.ttf"));
-    private Tree argumentValueTree = null;
-    private TreeModel argumentsValueTreeNode;
-    private JsonNode argumentsValueJsonNode;
-    private JBScrollPane parameterScrollPanel;
-    private DefaultTreeCellEditor cellEditor;
+    private JBScrollPane parameterScrollPanel = null;
+    private TestCaseDesignerLite designerLite;
+    private JsonTreeEditor parameterEditor;
+    private AnAction executeAction;
+    private AnAction modifyArgumentsAction;
+
+    private boolean isShowingRouter = true;
+    private JPanel methodParameterContainer;
 
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener onCloseListener) {
+    public MethodDirectInvokeComponent(InsidiousService insidiousService,
+                                       ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
         this.insidiousService = insidiousService;
-        this.objectMapper = this.insidiousService.getObjectMapper();
-        modifyArgumentsButton.setVisible(false);
+        this.objectMapper = ObjectMapperInstance.getInstance();
 
-        candidateCountLinkLabel.setVisible(false);
-        coveragePercentLabel.setVisible(false);
-//        scrollerContainer.setVisible(false);
-        candidateCountPanelParent.setVisible(false);
-//        setActionPanelTitle("This will be available after IDEA indexing is complete");
-//        executeButton.setEnabled(false);
-        createBoilerPlate.setText("<html><u><s>Create JUnit Boilerplate</s></u></html>");
-        createBoilerPlate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        createBoilerPlate.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                insidiousService.previewTestCase(methodElement, null, true);
-            }
-        });
-
-        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                onCloseListener.onClose(MethodDirectInvokeComponent.this);
-            }
-        });
-        executeButton.addActionListener(e -> executeMethodWithParameters());
-        methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
-
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    executeMethodWithParameters();
-                }
-            }
-        });
-        executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
+//        centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
 
 
-//        permanentMocksCheckBox.addActionListener(e -> {
-//            if (permanentMocksCheckBox.isSelected()) {
-//                insidiousService.injectMocksInRunningProcess(null);
-//            } else {
-//                insidiousService.removeMocksInRunningProcess(null);
+//        AnAction closeAction = new AnAction(() -> "Back", AllIcons.Actions.Back) {
+//            @Override
+//            public void actionPerformed(@NotNull AnActionEvent e) {
+//                centerPanel.removeAll();
+////                if (isShowingRouter) {
+//                isShowingRouter = false;
+//                componentLifecycleListener.onClose();
+////                } else {
+////                    centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
+////                    isShowingRouter = true;
+////                }
+//                centerPanel.revalidate();
+//                centerPanel.repaint();
 //            }
-//        });
+//
+//            @Override
+//            public boolean isDumbAware() {
+//                return false;
+//            }
+//
+//            @Override
+//            public boolean displayTextInToolbar() {
+//                return true;
+//            }
+//
+//        };
 
-//        createJUnitBoilerplateButton.setIcon(UIUtils.TEST_TUBE_FILL);
-//        createJUnitBoilerplateButton.addActionListener(
-//                e -> {
-//                    TestCaseGenerationConfiguration generationConfiguration = insidiousService.generateMethodBoilerplate(
-//                            methodElement);
-//                    if (generationConfiguration == null) {
-//                        InsidiousNotification.notifyMessage("Failed to create boilerplate test case",
-//                                NotificationType.ERROR);
-//                        return;
-//                    }
-//                    insidiousService.previewTestCase(methodElement, generationConfiguration);
-//                    InsidiousNotification.notifyMessage(
-//                            "Created JUnit test boilerplate. \nRecord with unlogged-sdk to create full JUnit " +
-//                                    "test case.", NotificationType.INFORMATION
-//                    );
-//                });
+//        List<AnAction> action11 = new ArrayList<>();
+//        action11.add(closeAction);
+
+//        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+//                "MDIC ActionToolBar", new DefaultActionGroup(action11), true);
+//        actionToolbar.setMiniMode(false);
+//        actionToolbar.setForceMinimumSize(true);
+//        actionToolbar.setTargetComponent(centerPanel);
+//        controlPanel.add(actionToolbar.getComponent(), BorderLayout.EAST);
 
 
-        candidateCountLinkLabel.addMouseListener(new MouseAdapter() {
+//        closeButton.setIcon(UIUtils.CLOSE_LINE_SVG);
+
+
+        this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                insidiousService.focusAtomicTestsWindow();
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    try {
+                        parameterScrollPanel.setViewportView(new JLabel("Executing..."));
+                        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                            executeMethodWithParameters();
+                        });
+                    } catch (Exception e1) {
+                        parameterScrollPanel.setViewportView(methodParameterContainer);
+                    }
+                });
             }
-        });
-        coveragePercentLabel.addMouseListener(new MouseAdapter() {
+
             @Override
-            public void mouseClicked(MouseEvent e) {
-                insidiousService.focusAtomicTestsWindow();
+            public boolean displayTextInToolbar() {
+                return true;
             }
-        });
-        modifyArgumentsButton.addActionListener(e -> {
-            try {
-                renderForMethod(methodElement, null);
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
+        };
+
+        this.modifyArgumentsAction = new AnAction(() -> "Edit Arguments", UIUtils.EDIT) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    renderForMethod(methodElement, null);
+                });
             }
-        });
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
     }
+
 
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
         if (node.getChildCount() >= 0) {
-            for (Enumeration e = node.children(); e.hasMoreElements(); ) {
+            for (Enumeration<? extends TreeNode> e = node.children(); e.hasMoreElements(); ) {
                 TreeNode n = (TreeNode) e.nextElement();
                 TreePath path = parent.pathByAddingChild(n);
                 expandAll(tree, path);
@@ -186,261 +173,33 @@ public class MethodDirectInvokeComponent implements ActionListener {
         return 1 + expandAll(tree, new TreePath(root));
     }
 
-    public void updateCandidateCount(int candidateCount) {
-        if (candidateCount == 0) {
-            candidateCountLinkLabel.setVisible(false);
-        } else if (candidateCount > 0) {
-            candidateCountLinkLabel.setVisible(true);
-            candidateCountLinkLabel.setText("<HTML><U>" + candidateCount + " recorded execution" + "</U></HTML>");
-            candidateCountLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            candidateCountLinkLabel.setForeground(UIUtils.tealdark);
-            ;
-        }
-    }
-
-    public void setCoveragePercent(int coveragePercent) {
-        if (coveragePercent == 0) {
-            coveragePercentLabel.setVisible(false);
-        } else if (coveragePercent > 0) {
-            coveragePercentLabel.setVisible(true);
-            coveragePercentLabel.setText("<HTML><U>+" + coveragePercent + " line coverage" + "</U></HTML>");
-            coveragePercentLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            coveragePercentLabel.setForeground(UIUtils.green);
-
-        }
-    }
-
     private void executeMethodWithParameters() {
         boolean isConnected = insidiousService.isAgentConnected();
-//        returnValueTextArea.setFont(SOURCE_CODE);
 
-        returnValueTextArea = new JTextArea();
-        returnValueTextArea.setLineWrap(true);
 
         if (!isConnected) {
-            String message = "Start your application with Java unlogged-sdk to start using " +
-                    "method DirectInvoke";
+            String message = "Application is not running with unlogged-sdk.";
             InsidiousNotification.notifyMessage(message, NotificationType.INFORMATION);
-            parameterScrollPanel.setViewportView(returnValueTextArea);
-
-            returnValueTextArea.setText(message);
-            insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING);
             return;
         }
 
         if (methodElement == null) {
             String message = "No method selected in editor.";
-            parameterScrollPanel.setViewportView(returnValueTextArea);
-            returnValueTextArea.setText(message);
             InsidiousNotification.notifyMessage(message, NotificationType.WARNING);
             return;
         }
-        executeButton.setText("Executing...");
-        executeButton.setEnabled(false);
-        createBoilerPlate.setVisible(false);
-
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
-                    psiClass -> {
-                        JSONObject eventProperties = new JSONObject();
-                        eventProperties.put("className", psiClass.getQualifiedClassName());
-                        eventProperties.put("methodName", methodElement.getName());
-
-                        UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
-                        List<String> methodArgumentValues = new ArrayList<>();
-                        ParameterAdapter[] parameters = methodElement.getParameters();
-                        for (int i = 0; i < parameters.length; i++) {
-//                ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
-                            ParameterAdapter parameter = parameters[i];
-
-                            String selectedKey = "/" + parameter.getName();
-
-                            JsonNode valueFromJsonNode = JsonTreeUtils.treeModelToJson(argumentsValueTreeNode);
-
-                            String parameterValue = null;
-                            try {
-                                parameterValue = objectMapper.writeValueAsString(valueFromJsonNode.get(parameter.getName()));
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException(e);
-                            }
-                            String canonicalText = ApplicationManager.getApplication().runReadAction(
-                                    (Computable<String>) () -> parameter.getType().getCanonicalText());
-                            if ("java.lang.String".equals(canonicalText) &&
-                                    !parameterValue.startsWith("\"")) {
-                                try {
-                                    parameterValue = objectMapper.writeValueAsString(parameterValue);
-                                } catch (JsonProcessingException e) {
-                                    // should never happen
-                                }
-                            }
-                            methodArgumentValues.add(parameterValue);
-                        }
-
-                        AgentCommandRequest agentCommandRequest =
-                                MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass,
-                                        methodArgumentValues,
-                                        false, null);
-                        agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
-
-
-//            returnValueTextArea.setText("Executing method [" + agentCommandRequest.getMethodName() + "()]\nin class ["
-//                    + agentCommandRequest.getClassName() + "].\nWaiting for response...");
-                        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                                (agentCommandRequest1, agentCommandResponse) -> {
-                                    executeButton.setEnabled(true);
-                                    executeButton.setText("Re-execute");
-//                        logger.warn("Agent command execution response: " + agentCommandResponse);
-                                    if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                                        if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                            InsidiousNotification.notifyMessage(
-                                                    "Exception thrown when trying to direct invoke " + agentCommandRequest.getMethodName(),
-                                                    NotificationType.ERROR
-                                            );
-                                            return;
-                                        }
-                                    }
-
-                                    ResponseType responseType = agentCommandResponse.getResponseType();
-                                    String responseMessage = agentCommandResponse.getMessage() == null ? "" :
-                                            agentCommandResponse.getMessage() + "\n";
-//                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
-                                    String responseObjectClassName = agentCommandResponse.getResponseClassName();
-                                    Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
-                                    modifyArgumentsButton.setVisible(true);
-
-                                    String targetClassName = agentCommandResponse.getTargetClassName();
-                                    if (targetClassName == null) {
-                                        targetClassName = agentCommandRequest.getClassName();
-                                    }
-                                    targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
-                                    String targetMethodName = agentCommandResponse.getTargetMethodName();
-                                    if (targetMethodName == null) {
-                                        targetMethodName = agentCommandRequest.getMethodName();
-                                    }
-                                    ApplicationManager.getApplication()
-                                            .invokeLater(() -> {
-                                                if (argumentValueTree != null) {
-                                                    argumentValueTree.collapsePath(
-                                                            new TreePath(argumentValueTree.getModel().getRoot()));
-                                                }
-                                            });
-                                    String toolTipText = "Timestamp: " +
-                                            new Timestamp(agentCommandResponse.getTimestamp()) + " from "
-                                            + targetClassName + "." + targetMethodName + "( " + " )";
-                                    returnValueTextArea.setToolTipText(toolTipText);
-                                    if (responseType == null) {
-//                            panelTitledBoarder.setTitle(responseObjectClassName);
-                                        parameterScrollPanel.setViewportView(returnValueTextArea);
-                                        returnValueTextArea.setText(responseMessage + methodReturnValue);
-                                        return;
-                                    }
-
-                                    if (responseType.equals(ResponseType.NORMAL)) {
-
-                                        ObjectMapper objectMapper = insidiousService.getObjectMapper();
-                                        try {
-                                            String returnValueString = String.valueOf(methodReturnValue);
-
-                                            String responseClassName = agentCommandResponse.getResponseClassName();
-                                            if (responseClassName.equals("float") || responseClassName.equals(
-                                                    "java.lang.Float")) {
-                                                returnValueString = ParameterUtils.getFloatValue(returnValueString);
-                                            }
-
-                                            if (responseClassName.equals("double") || responseClassName.equals(
-                                                    "java.lang.Double")) {
-                                                returnValueString = ParameterUtils.getDoubleValue(returnValueString);
-                                            }
-
-                                            JsonNode jsonNode = objectMapper.readValue(returnValueString,
-                                                    JsonNode.class);
-
-                                            TreeModel responseObjectTree = JsonTreeUtils.jsonToTreeModel(
-                                                    jsonNode, responseClassName);
-
-//                                returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
-//                                        .writeValueAsString(jsonNode));
-
-//                                returnValuePanel.setViewportView(returnValueTextArea);
-                                            Tree comp = new Tree(responseObjectTree);
-                                            comp.setToolTipText(toolTipText);
-                                            comp.setBackground(JBColor.WHITE);
-                                            comp.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-                                            int totalNodeCount = expandAllNodes(comp);
-//                                JPanel responseTreeContainer = new JPanel(new BorderLayout());
-//                                responseTreeContainer.add(comp, BorderLayout.CENTER);
-                                            parameterScrollPanel.setViewportView(comp);
-//                                if (totalNodeCount > 4) {
-//                                    int min = Math.min(totalNodeCount * 30, 300);
-//                                    returnValuePanel.setSize(new Dimension(-1, min));
-//                                    returnValuePanel.setPreferredSize(new Dimension(-1, min));
-//                                    returnValuePanel.setMaximumSize(new Dimension(-1, min));
-//                                } else {
-//                                    returnValuePanel.setSize(new Dimension(-1, 100));
-//                                    returnValuePanel.setPreferredSize(new Dimension(-1, 100));
-//                                    returnValuePanel.setMaximumSize(new Dimension(-1, 100));
-//
-//                                }
-                                        } catch (JsonProcessingException ex) {
-                                            parameterScrollPanel.setViewportView(returnValueTextArea);
-                                            returnValueTextArea.setText(methodReturnValue.toString());
-                                        }
-                                    } else if (responseType.equals(ResponseType.EXCEPTION)) {
-//                            panelTitledBoarder.setTitle(responseObjectClassName);
-                                        if (methodReturnValue != null) {
-                                            parameterScrollPanel.setViewportView(returnValueTextArea);
-                                            returnValueTextArea.setText(
-                                                    ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
-                                        } else {
-                                            parameterScrollPanel.setViewportView(returnValueTextArea);
-                                            returnValueTextArea.setText(agentCommandResponse.getMessage());
-                                        }
-                                    } else {
-//                            panelTitledBoarder.setTitle(responseObjectClassName);
-                                        parameterScrollPanel.setViewportView(returnValueTextArea);
-                                        returnValueTextArea.setText(responseMessage + methodReturnValue);
-                                    }
-//                        scrollerContainer.revalidate();
-//                        scrollerContainer.repaint();
-
-                                    ResponseType responseType1 = agentCommandResponse.getResponseType();
-                                    DiffResultType diffResultType = responseType1.equals(
-                                            ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                                    DifferenceResult diffResult = new DifferenceResult(null,
-                                            diffResultType, null,
-                                            DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                                    diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-//                        diffResult.setMethodAdapter(methodElement);
-                                    diffResult.setResponse(agentCommandResponse);
-                                    diffResult.setCommand(agentCommandRequest);
-                                    insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
-                                            insidiousService.getSessionInstance().getProcessedFileCount(),
-                                            insidiousService.getSessionInstance().getTotalFileCount()));
-                                });
-                    });
-
-        });
+//        createBoilerplateButton.setVisible(false);
+        DumbService.getInstance(insidiousService.getProject()).runWhenSmart(
+                this::chooseClassAndDirectInvoke);
     }
 
-    public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) throws JsonProcessingException {
+    public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
         if (methodElement1 == null) {
             logger.info("DirectInvoke got null method");
             return;
         }
-
         this.methodElement = methodElement1;
-        String methodName = methodElement.getName();
-        ((TitledBorder) mainContainer.getBorder()).setTitle(methodName);
         ClassAdapter containingClass = methodElement.getContainingClass();
-
-        modifyArgumentsButton.setVisible(false);
-        createBoilerPlate.setVisible(true);
-        executeButton.setText("Execute");
-
-        logger.warn("render method executor for: " + methodName);
-        String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
-        String title = methodNameForLabel + "( " + ")";
-        setActionPanelTitle(title);
 
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
@@ -455,22 +214,24 @@ public class MethodDirectInvokeComponent implements ActionListener {
         if (existingRequests != null) {
             methodArgumentValues = existingRequests.getMethodParameters();
         } else {
-            SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
-            if (sessionInstance != null) {
-                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
-                        methodElement, CandidateFilterType.METHOD, false);
-
-                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
-                int candidateCount = methodTestCandidates.size();
-                if (candidateCount > 0) {
-                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
-                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                            mostRecentTestCandidate);
-                }
-            }
+//            SessionInstanceInterface sessionInstance = this.insidiousService.getSessionInstance();
+//            if (sessionInstance != null) {
+//                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+//                        methodElement, CandidateFilterType.METHOD, false);
+//
+//                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
+//                int candidateCount = methodTestCandidates.size();
+//                if (candidateCount > 0) {
+//                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
+//                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+//                            mostRecentTestCandidate);
+//                }
+//            }
         }
 
-        JPanel methodParameterContainer = new JPanel();
+        methodParameterContainer = new JPanel();
+        BorderLayout boxLayout = new BorderLayout();
+        methodParameterContainer.setLayout(boxLayout);
 
         parameterInputComponents.clear();
         Project project = methodElement.getProject();
@@ -478,8 +239,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         if (methodParameters.length > 0) {
 //            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
-            BorderLayout boxLayout = new BorderLayout();
-            methodParameterContainer.setLayout(boxLayout);
             Map<String, JsonNode> methodArgumentsMap = new HashMap<>();
 
             for (int i = 0; i < methodParameters.length; i++) {
@@ -490,8 +249,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 if (methodArgumentValues != null && i < methodArgumentValues.size()) {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
-                    parameterValue = ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
-                            insidiousService.getProject());
+                    parameterValue = ApplicationManager.getApplication()
+                            .runReadAction((Computable<String>) () ->
+                                    ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
+                                            insidiousService.getProject()));
                 }
                 try {
                     methodArgumentsMap.put(methodParameter.getName(), objectMapper.readTree(parameterValue));
@@ -499,196 +260,281 @@ public class MethodDirectInvokeComponent implements ActionListener {
                     methodArgumentsMap.put(methodParameter.getName(),
                             objectMapper.getNodeFactory().textNode(parameterValue));
                 }
-//
-//                ParameterInputComponent parameterContainer;
-//                JPanel content;
-//                String typeCanonicalName = methodParameterType.getCanonicalText();
-//                if (methodParameterType instanceof PsiPrimitiveType
-//                        || isBoxedPrimitive(typeCanonicalName)
-//                ) {
-//                    parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-//                            JBTextField.class, this);
-//                    content = parameterContainer.getContent();
-//                    content.setMinimumSize(new Dimension(100, 150));
-////                    content.setPreferredSize(new Dimension(100, 80));
-////                    content.setMaximumSize(new Dimension(-1, 80));
-//                } else {
-//                    PsiClass typeClassReference = JavaPsiFacade
-//                            .getInstance(project)
-//                            .findClass(typeCanonicalName, projectAndLibrariesScope);
-//                    if (typeClassReference != null && (typeClassReference.isEnum())) {
-//                        parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-//                                JBTextArea.class, NOP_KEY_ADAPTER);
-//                    } else {
-//                        parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-//                                JBTextArea.class, NOP_KEY_ADAPTER);
-//                    }
-//                    content = parameterContainer.getContent();
-//                    content.setMinimumSize(new Dimension(100, 150));
-////                    content.setMaximumSize(new Dimension(-1, 300));
-//                }
-//
-//
-//                parameterInputComponents.add(parameterContainer);
-//                methodParameterContainer.add(content);
+
             }
             String source = "{}";
             try {
                 source = objectMapper.writeValueAsString(methodArgumentsMap);
-                argumentsValueJsonNode = objectMapper.readTree(source);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            argumentsValueTreeNode = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(source), "Method Arguments");
-            argumentValueTree = new Tree(argumentsValueTreeNode);
-            argumentValueTree.setBackground(JBColor.WHITE);
-            argumentValueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
 
-            argumentValueTree.setEditable(true);
-            cellEditor = new DefaultTreeCellEditor(argumentValueTree, null) {
-                private JTextField editor;
-                private String key;
-
-                @Override
-                public boolean isCellEditable(EventObject event) {
-                    boolean isEditable = super.isCellEditable(event);
-                    if (isEditable) {
-                        // Make sure only leaf nodes are editable
-                        TreePath path = tree.getSelectionPath();
-                        return path != null && tree.getModel().isLeaf(path.getLastPathComponent());
-                    }
-                    return false;
-                }
-
-                @Override
-                public Component getTreeCellEditorComponent(JTree tree, Object value, boolean isSelected, boolean expanded, boolean leaf, int row) {
-                    editor = new JTextField();
-                    if (value instanceof DefaultMutableTreeNode) {
-                        Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-                        String[] parts = userObject.toString().split(":");
-                        key = parts[0];
-                        editor.setText(parts[1].trim());
-                        editor.addKeyListener(new KeyStrokeAdapter() {
-                            @Override
-                            public void keyTyped(KeyEvent event) {
-                                super.keyTyped(event);
-                                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
-                                    cellEditor.stopCellEditing();
-                                }
-                            }
-                        });
-                    }
-                    return editor;
-                }
-
-                @Override
-                public boolean stopCellEditing() {
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) argumentValueTree.getLastSelectedPathComponent();
-                    if (node != null && node.isLeaf()) {
-                        DefaultTreeModel model = (DefaultTreeModel) argumentValueTree.getModel();
-                        node.setUserObject(getCellEditorValue());
-                        model.nodeChanged(node); // Notify the model that the node has changed
-                    }
-                    return super.stopCellEditing();
-                }
-
-                @Override
-                public Object getCellEditorValue() {
-                    return key + ": " + editor.getText().trim();
-                }
-            };
-
-            // Listener to handle changes in the tree nodes
-            argumentValueTree.getModel().addTreeModelListener(new TreeModelListener() {
-                @Override
-                public void treeNodesChanged(TreeModelEvent e) {
-                    TreePath path = e.getTreePath();
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
-                    try {
-                        String editedValue = (String) node.getUserObject();
-                        // Here, you can further process the edited value if necessary
-                        // For example, validate or parse it before saving
-                        node.setUserObject(editedValue);
-                    } catch (Exception ex) {
-                        logger.error("Failed to read value", ex);
-                        InsidiousNotification.notifyMessage("Failed to read value, please report this on github",
-                                NotificationType.ERROR);
-                    }
-                }
-
-                public void treeNodesInserted(TreeModelEvent e) {
-                }
-
-                public void treeNodesRemoved(TreeModelEvent e) {
-                }
-
-                public void treeStructureChanged(TreeModelEvent e) {
-                }
-            });
-
-            argumentValueTree.setCellEditor(cellEditor);
-            expandAllNodes(argumentValueTree);
-            methodParameterContainer.add(argumentValueTree, BorderLayout.CENTER);
+            JsonNode jsonNode = null;
+            try {
+                jsonNode = objectMapper.readTree(source);
+            } catch (JsonProcessingException e) {
+                jsonNode = objectMapper.getNodeFactory().textNode(source);
+            }
+            parameterEditor = new JsonTreeEditor(jsonNode, "Method Arguments", true, executeAction);
+            parameterEditor.setEditable(true);
         } else {
-            JBLabel noParametersLabel = new JBLabel("Method " + methodName + "() has no parameters");
-            methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
+            parameterEditor = new JsonTreeEditor(objectMapper.getNodeFactory().objectNode(), "No method arguments",
+                    false, executeAction);
         }
 
-//        Spacer spacer = new Spacer();
-//        methodParameterContainer.add(spacer);
-        methodParameterScrollContainer.removeAll();
+        methodParameterContainer.add(parameterEditor.getComponent(), BorderLayout.CENTER);
 
-        parameterScrollPanel = new JBScrollPane(methodParameterContainer);
-        parameterScrollPanel.setMaximumSize(new Dimension(-1, 300));
-        parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        if (parameterScrollPanel == null) {
+            parameterScrollPanel = new JBScrollPane(methodParameterContainer);
+            parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
-
-        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 100, 100)));
-        methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
+        }
 
 
-        mainContainer.revalidate();
-        mainContainer.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            centerPanel.removeAll();
+            parameterScrollPanel.setViewportView(methodParameterContainer);
+            centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
+            parameterScrollPanel.revalidate();
+            parameterScrollPanel.repaint();
+            centerPanel.revalidate();
+            centerPanel.repaint();
+        });
 
     }
 
-    private void setActionPanelTitle(String title) {
-//        TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
-//        titledBorder.setTitle(title);
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        executeMethodWithParameters();
-    }
-
-    private void clearOutputSection() {
-//        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
-//        panelTitledBoarder.setTitle("Method Response");
-//        returnValueTextArea.setText("");
-    }
-
-    private boolean isBoxedPrimitive(String typeCanonicalName) {
-        return typeCanonicalName.equals("java.lang.String")
-                || typeCanonicalName.equals("java.lang.Integer")
-                || typeCanonicalName.equals("java.lang.Long")
-                || typeCanonicalName.equals("java.lang.Double")
-                || typeCanonicalName.equals("java.lang.Short")
-                || typeCanonicalName.equals("java.lang.Float")
-                || typeCanonicalName.equals("java.lang.Byte")
-                || typeCanonicalName.equals("java.math.BigDecimal");
-    }
-
-
-    public JComponent getContent() {
+    public JComponent getComponent() {
         return mainContainer;
     }
 
-    public void triggerExecute() {
-        executeMethodWithParameters();
+    @Override
+    public String getTitle() {
+        return "Direct Invoke";
     }
 
-//    public void uncheckPermanentMocks() {
-//        permanentMocksCheckBox.setSelected(false);
-//    }
+    public void triggerExecute() {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            executeMethodWithParameters();
+        });
+    }
+
+    private void classSelected(ClassUnderTest psiClass) {
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("className", psiClass.getQualifiedClassName());
+        eventProperties.put("methodName", methodElement.getName());
+        eventProperties.put("methodSignature", methodElement.getJVMSignature());
+
+        UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
+        List<String> methodArgumentValues = new ArrayList<>();
+        ParameterAdapter[] parameters = methodElement.getParameters();
+        for (int i = 0; i < parameters.length; i++) {
+//                ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
+            ParameterAdapter parameter = parameters[i];
+
+            String selectedKey = "/" + ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) parameter::getName);
+
+            JsonNode valueFromJsonNode = parameterEditor.getValue();
+
+            String parameterValue = null;
+            try {
+                parameterValue = objectMapper.writeValueAsString(
+                        valueFromJsonNode.get(parameter.getName()));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> parameter.getType().getCanonicalText());
+            if ("java.lang.String".equals(canonicalText) &&
+                    !parameterValue.startsWith("\"")) {
+                try {
+                    parameterValue = objectMapper.writeValueAsString(parameterValue);
+                } catch (JsonProcessingException e) {
+// should never happen
+                }
+            }
+            methodArgumentValues.add(parameterValue);
+        }
+
+        AgentCommandRequest agentCommandRequest =
+                MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass,
+                        methodArgumentValues, false, null);
+        agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
+
+        if (returnValueTextArea != null) {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    returnValueTextArea.getDocument().setText("Executing...");
+                });
+            });
+        }
+
+        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                (agentCommandRequest1, agentCommandResponse) -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+
+                        if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                            if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                InsidiousNotification.notifyMessage(
+                                        "Exception thrown when trying to direct invoke " + agentCommandRequest.getMethodName(),
+                                        NotificationType.ERROR
+                                );
+                                return;
+                            }
+                        }
+
+                        ResponseType responseType = agentCommandResponse.getResponseType();
+                        String responseMessage = agentCommandResponse.getMessage() == null ? "" :
+                                agentCommandResponse.getMessage() + "\n";
+                        //                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
+                        String responseObjectClassName = agentCommandResponse.getResponseClassName();
+                        Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
+
+                        String targetClassName = agentCommandResponse.getTargetClassName();
+                        if (targetClassName == null) {
+                            targetClassName = agentCommandRequest.getClassName();
+                        }
+                        targetClassName = targetClassName.substring(
+                                targetClassName.lastIndexOf(".") + 1);
+                        String targetMethodName = agentCommandResponse.getTargetMethodName();
+                        if (targetMethodName == null) {
+                            targetMethodName = agentCommandRequest.getMethodName();
+                        }
+
+                        String toolTipText = "Timestamp: " +
+                                new Timestamp(agentCommandResponse.getTimestamp()) + " from "
+                                + targetClassName + "." + targetMethodName + "( " + " )";
+
+                        if (responseType == null) {
+                            returnValueTextArea.getDocument().setText(responseMessage + "\n" + methodReturnValue);
+                            return;
+                        }
+
+                        if (responseType.equals(ResponseType.NORMAL)) {
+
+                            try {
+                                String returnValueString = String.valueOf(methodReturnValue);
+
+                                String responseClassName = agentCommandResponse.getResponseClassName();
+                                if (responseClassName.equals("float") ||
+                                        responseClassName.equals("java.lang.Float")) {
+                                    returnValueString = ParameterUtils.getFloatValue(returnValueString);
+                                }
+
+                                if (responseClassName.equals("double") ||
+                                        responseClassName.equals("java.lang.Double")) {
+                                    returnValueString = ParameterUtils.getDoubleValue(returnValueString);
+                                }
+
+                                JsonNode jsonNode = null;
+                                if (responseClassName.equals("java.lang.String")) {
+                                    JsonNodeFactory jsonNodeFactory = objectMapper.getNodeFactory();
+                                    jsonNode = jsonNodeFactory.objectNode().put("String", returnValueString);
+                                } else {
+                                    jsonNode = objectMapper.readTree(returnValueString);
+                                }
+
+                                // pass execute and modify buttons
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false,
+                                        this.executeAction, this.modifyArgumentsAction);
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
+                            } catch (JsonProcessingException ex) {
+                                JsonTreeEditor jsonTreeEditor = getJsonTreeEditor(methodReturnValue.toString());
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+                            }
+                        } else if (responseType.equals(ResponseType.EXCEPTION)) {
+
+                            if (methodReturnValue != null) {
+                                String exceptionString = ExceptionUtils.prettyPrintException(
+                                        methodReturnValue.toString());
+
+                                String editorText = ExceptionUtils.prettyPrintException(exceptionString);
+                                JsonTreeEditor jsonTreeEditor = getJsonTreeEditor(editorText);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
+
+                            } else {
+                                String editorText = agentCommandResponse.getMessage();
+                                JsonTreeEditor jsonTreeEditor = getJsonTreeEditor(editorText);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
+                            }
+                        } else if (responseType.equals(ResponseType.FAILED)) {
+
+                            if (methodReturnValue != null) {
+                                String editorText = ExceptionUtils.prettyPrintException(
+                                        methodReturnValue.toString());
+                                JsonTreeEditor jsonTreeEditor = getJsonTreeEditor(editorText);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
+                            } else {
+                                String editorText = ExceptionUtils.prettyPrintException(
+                                        agentCommandResponse.getMessage());
+                                JsonTreeEditor jsonTreeEditor = getJsonTreeEditor(editorText);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
+
+                            }
+                        } else {
+                            String editorText = responseMessage + methodReturnValue;
+                            JsonTreeEditor jsonTreeEditor = getJsonTreeEditor(editorText);
+
+                            parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
+
+                        }
+
+                        ResponseType responseType1 = agentCommandResponse.getResponseType();
+                        DiffResultType diffResultType = responseType1.equals(
+                                ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
+                        DifferenceResult diffResult = new DifferenceResult(null,
+                                diffResultType, null,
+                                DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                        diffResult.setResponse(agentCommandResponse);
+                        diffResult.setCommand(agentCommandRequest);
+                        insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
+                                insidiousService.getSessionInstance().getProcessedFileCount(),
+                                insidiousService.getSessionInstance().getTotalFileCount()));
+                    });
+                });
+    }
+
+    private JsonTreeEditor getJsonTreeEditor(String editorText) {
+        if (returnValueTextArea != null) {
+            EditorFactory.getInstance().releaseEditor(returnValueTextArea);
+            returnValueTextArea = null;
+        }
+        Document document = EditorFactory.getInstance().createDocument(editorText);
+        returnValueTextArea = EditorFactory.getInstance().createEditor(document, insidiousService.getProject());
+        JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                this.executeAction, this.modifyArgumentsAction);
+        return jsonTreeEditor;
+    }
+
+    private void chooseClassAndDirectInvoke() {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                    this::classSelected);
+        });
+    }
+
+    @Override
+    public void dispose() {
+        if (returnValueTextArea != null) {
+            EditorFactory.getInstance().releaseEditor(returnValueTextArea);
+            returnValueTextArea = null;
+        }
+    }
+
+    public void setMethod(MethodAdapter method) {
+        this.methodElement = method;
+    }
+
 }

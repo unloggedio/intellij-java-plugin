@@ -41,8 +41,12 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
         }
         String expressionParentClass = parentClass.getQualifiedName();
 
-        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
-                .getParent();
+        PsiReferenceExpression psiExpressionReference = (PsiReferenceExpression) qualifier;
+        PsiClass fieldParentPsiClass = (PsiClass) psiExpressionReference.resolve().getParent();
+        if (fieldParentPsiClass == null) {
+            logger.warn("parent class for expression is null [" + methodCall + "]");
+            return false;
+        }
         String fieldParentClass = fieldParentPsiClass.getQualifiedName();
         if (!Objects.equals(fieldParentClass, expressionParentClass) &&
                 !IsImplementedBy(fieldParentPsiClass, parentClass)) {
@@ -146,24 +150,24 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
         final Set<PsiStatement> statements = new HashSet<>();
 
 
-//        for (PsiElement element : elements) {
-//            ProgressManager.checkCanceled();
-//
-//            if (element instanceof PsiMethodCallExpression) {
-//                final PsiMethodCallExpression methodCall = (PsiMethodCallExpression) element;
-//                final PsiStatement statement = PsiTreeUtil.getParentOfType(methodCall, PsiStatement.class, true,
-//                        PsiMethod.class);
-//                if (!statements.contains(statement) && isNonStaticDependencyCall(methodCall)) {
-//                    statements.add(statement);
-//                    ContainerUtil.addIfNotNull(result,
-//                            new LineMarkerInfo<>(
-//                                    (PsiIdentifier) element.getFirstChild().getLastChild(),
-//                                    methodCall.getTextRange(), UIUtils.GHOST_MOCK,
-//                                    psiIdentifier -> "Add mock response",
-//                                    methodMockGutterNavigationHandler, GutterIconRenderer.Alignment.LEFT));
-//                }
-//            }
-//        }
+        for (PsiElement element : elements) {
+            ProgressManager.checkCanceled();
+
+            if (element instanceof PsiMethodCallExpression) {
+                final PsiMethodCallExpression methodCall = (PsiMethodCallExpression) element;
+                final PsiStatement statement = PsiTreeUtil.getParentOfType(methodCall, PsiStatement.class, true,
+                        PsiMethod.class);
+                if (!statements.contains(statement) && isNonStaticDependencyCall(methodCall)) {
+                    statements.add(statement);
+                    ContainerUtil.addIfNotNull(result,
+                            new LineMarkerInfo<>(
+                                    (PsiIdentifier) element.getFirstChild().getLastChild(),
+                                    methodCall.getTextRange(), UIUtils.GHOST_MOCK,
+                                    psiIdentifier -> "Add mock response",
+                                    methodMockGutterNavigationHandler, GutterIconRenderer.Alignment.LEFT));
+                }
+            }
+        }
     }
 
     public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(PsiElement element) {

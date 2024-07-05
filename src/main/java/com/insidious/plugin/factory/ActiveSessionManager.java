@@ -1,9 +1,13 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.agent.ServerMetadata;
+import com.insidious.plugin.client.NetworkSessionInstanceClient;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -13,7 +17,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,58 +24,69 @@ public class ActiveSessionManager {
 
 
     private static final Logger logger = LoggerUtil.getInstance(ActiveSessionManager.class);
-    private final Map<String, SessionInstance> sessionInstanceMap = new HashMap<>();
-    private final ExecutionSession defaultSessionInstance;
+    private final Map<String, SessionInstanceInterface> sessionInstanceMap = new HashMap<>();
+    private final Map<String, Boolean> isDeletedSession = new HashMap<>();
 
     public ActiveSessionManager() {
-        String pathToSessions = Constants.HOME_PATH + "/sessions/na";
-
-        defaultSessionInstance = new ExecutionSession();
-        defaultSessionInstance.setPath(pathToSessions);
-        defaultSessionInstance.setSessionId("na");
-        defaultSessionInstance.setCreatedAt(new Date());
-        defaultSessionInstance.setLastUpdateAt(new Date().getTime());
-
     }
 
-    public synchronized SessionInstance createSessionInstance(ExecutionSession executionSession, Project project) {
-        if (sessionInstanceMap.containsKey(executionSession.getSessionId())) {
-            return sessionInstanceMap.get(executionSession.getSessionId());
+    public synchronized SessionInstanceInterface createSessionInstance(
+            ExecutionSession executionSession,
+            ServerMetadata serverMetadata,
+            ExecutionSessionSource executionSessionSource,
+            Project project) {
+        String newSessionId = executionSession.getSessionId();
+        if (sessionInstanceMap.containsKey(newSessionId)) {
+            return sessionInstanceMap.get(newSessionId);
         }
-        SessionInstance sessionInstance = null;
-        try {
-            sessionInstance = new SessionInstance(executionSession, project);
-        } catch (SQLException | IOException e) {
-            logger.error("Failed to initialize session instance: " + e.getMessage(), e);
-            InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
-                    NotificationType.ERROR);
-            throw new RuntimeException(e);
+
+        ExecutionSessionSourceMode executionSessionSourceMode = executionSessionSource.getSessionMode();
+        String sessionNetworkUrl = executionSessionSource.getServerEndpoint();
+
+        // create a session instance
+        SessionInstanceInterface sessionInstance;
+        if (executionSessionSourceMode == ExecutionSessionSourceMode.REMOTE) {
+            logger.info("attempting to create a session instance from remote process");
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, newSessionId,
+                    serverMetadata);
+        } else {
+            logger.info("attempting to create a session instance from local process");
+            try {
+                sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
+            } catch (Throwable e) {
+                logger.error("Failed to initialize session instance: " + e.getMessage(), e);
+                InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
+                        NotificationType.ERROR);
+                throw new RuntimeException(e);
+            }
         }
-        sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);
+
+        sessionInstanceMap.put(newSessionId, sessionInstance);
         return sessionInstance;
     }
 
-    public ExecutionSession loadDefaultSession() {
-        return defaultSessionInstance;
-    }
+    public synchronized void cleanUpSessionDirectory(ExecutionSession executionSession) {
+        String sessionPath = executionSession.getPath();
+        if (isDeletedSession.containsKey(
+                sessionPath)) {
+            return;
+        }
 
-
-    public void cleanUpSessionDirectory(ExecutionSession executionSession) {
-        SessionInstance sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
+        SessionInstanceInterface sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
         if (sessionInstance == null) {
-            logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
-                    + " -> " + executionSession.getPath());
+            logger.info("called to delete unknown session id: " + executionSession.getSessionId()
+                    + " -> " + sessionPath);
         } else {
-            sessionInstance.close();
-            sessionInstanceMap.remove(executionSession.getSessionId());
+            closeSession(sessionInstance);
         }
         File directoryToBeDeleted = FileSystems.getDefault()
-                .getPath(executionSession.getPath())
+                .getPath(sessionPath)
                 .toFile();
         if (!directoryToBeDeleted.exists()) {
             return;
         }
         logger.warn("Deleting directory: " + directoryToBeDeleted);
+        isDeletedSession.put(sessionPath, true);
         deleteDirectory(directoryToBeDeleted);
     }
 
@@ -84,7 +98,14 @@ public class ActiveSessionManager {
             }
         }
 //        logger.warn("[1] Delete file: " + directoryToBeDeleted.getAbsolutePath());
-        directoryToBeDeleted.delete();
+        boolean wasDeleted = directoryToBeDeleted.delete();
+        if (!wasDeleted) {
+            logger.warn("Failed to deleted [" + directoryToBeDeleted.getAbsolutePath() + "]");
+        }
     }
 
+    public void closeSession(SessionInstanceInterface sessionInstance) {
+        sessionInstanceMap.remove(sessionInstance.getExecutionSession().getSessionId());
+        sessionInstance.close();
+    }
 }

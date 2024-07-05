@@ -1,45 +1,43 @@
 package com.insidious.plugin.callbacks;
 
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public interface TestCandidateLifeListener {
     void executeCandidate(
-            List<TestCandidateMetadata> metadata,
+            List<TestCandidateBareBone> metadata,
             ClassUnderTest classUnderTest,
             ExecutionRequestSourceType source,
-            AgentCommandResponseListener<TestCandidateMetadata, String> responseListener
+            AgentCommandResponseListener<TestCandidateBareBone, String> responseListener
     );
 
     void displayResponse(Component responseComponent, boolean isExceptionFlow);
 
-    void onSaved(TestCandidateMetadata storedCandidate);
+    void onSaved(TestCandidateBareBone storedCandidate);
 
-    void onSelected(TestCandidateMetadata storedCandidate);
+    void onSelected(TestCandidateBareBone storedCandidate);
 
-    void unSelected(TestCandidateMetadata storedCandidate);
+    void unSelected(TestCandidateBareBone storedCandidate);
 
-    void onSaveAsTestRequest(TestCandidateMetadata storedCandidate);
-    void onSaveAsMockRequest(TestCandidateMetadata storedCandidate);
+    void onDeleteRequest(TestCandidateBareBone storedCandidate);
 
-    void onDeleteRequest(TestCandidateMetadata storedCandidate);
+    void onDeleted(TestCandidateBareBone storedCandidate);
 
-    void onDeleted(TestCandidateMetadata storedCandidate);
+    void onUpdated(TestCandidateBareBone storedCandidate);
 
-    void onUpdated(TestCandidateMetadata storedCandidate);
+    void onUpdateRequest(TestCandidateBareBone storedCandidate);
 
-    void onUpdateRequest(TestCandidateMetadata storedCandidate);
+    void onGenerateJunitTestCaseRequest(List<TestCandidateBareBone> storedCandidate, TestCaseGenerationConfiguration generationConfiguration);
 
-    void onGenerateJunitTestCaseRequest(TestCandidateMetadata storedCandidate);
-
-    void onCandidateSelected(TestCandidateMetadata testCandidateMetadata);
+    void onCandidateSelected(TestCandidateBareBone testCandidateMetadata, MouseEvent e);
 
     void onCancel();
 
-    void onExpandChildren(TestCandidateMetadata candidateMetadata);
 }

@@ -1,5 +1,7 @@
 package com.insidious.plugin.mocking;
 
+import java.util.Objects;
+
 public class ThenParameter {
     private ReturnValue returnParameter;
     private MethodExitType methodExitType;
@@ -32,5 +34,18 @@ public class ThenParameter {
 
     public void setMethodExitType(MethodExitType methodExitType) {
         this.methodExitType = methodExitType;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ThenParameter that = (ThenParameter) o;
+        return returnParameter.equals(that.returnParameter) && methodExitType == that.methodExitType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(returnParameter, methodExitType);
     }
 }

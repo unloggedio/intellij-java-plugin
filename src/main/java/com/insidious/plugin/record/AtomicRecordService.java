@@ -1,22 +1,23 @@
 package com.insidious.plugin.record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.mocking.ParameterMatcher;
+import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -27,6 +28,7 @@ import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -39,7 +41,8 @@ import java.util.stream.Collectors;
 
 import static java.io.File.separator;
 
-public class AtomicRecordService {
+@Service(Service.Level.PROJECT)
+public final class AtomicRecordService {
     public static final String TEST_CONTENT_PATH = "src" + separator + "test" + separator;
     public static final String TEST_RESOURCES_PATH = TEST_CONTENT_PATH + "resources" + separator;
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
@@ -62,57 +65,6 @@ public class AtomicRecordService {
             dumbService.runWhenSmart(this::checkPreRequisites);
         }
     }
-
-    public GutterState computeGutterState(MethodUnderTest method) {
-        return GutterState.EXECUTE;
-
-//        try {
-//            String methodKey = method.getMethodHashKey();
-//            AtomicRecord record = classAtomicRecordMap.get(method.getClassName());
-//            if (record == null) {
-//                return null;
-//            }
-//            List<StoredCandidate> candidates;
-//            if (record.getStoredCandidateMap().get(methodKey) != null) {
-//                candidates = new ArrayList<>(record.getStoredCandidateMap().get(methodKey));
-//            } else {
-//                return null;
-//            }
-//            boolean hashChange = false;
-//            StoredCandidateMetadata.CandidateStatus status = null;
-//            for (StoredCandidate candidate : candidates) {
-//                MethodUnderTest candidateMethodUnderTest = candidate.getMethod();
-//                if (candidateMethodUnderTest.getMethodHash() != method.getMethodHash()) {
-//                    hashChange = true;
-//                }
-//                if (status == null) {
-//                    status = candidate.getMetadata().getCandidateStatus();
-//                } else {
-//                    if (candidate.getMetadata()
-//                            .getCandidateStatus().equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
-//                        status = StoredCandidateMetadata.CandidateStatus.FAILING;
-//                    }
-//                }
-//            }
-//            if (hashChange) {
-//                return GutterState.EXECUTE;
-//            }
-//            if (status == null || status == StoredCandidateMetadata.CandidateStatus.NA) {
-//                return GutterState.DATA_AVAILABLE;
-//            }
-//            if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
-//                return GutterState.DIFF;
-//            } else if (status.equals(StoredCandidateMetadata.CandidateStatus.PASSING)) {
-//                return GutterState.NO_DIFF;
-//            } else {
-//                return GutterState.DATA_AVAILABLE;
-//            }
-//        } catch (Exception e) {
-//            logger.info("Exception computing gutter state." + e);
-//            return null;
-//        }
-    }
-
 
     public void saveCandidate(MethodUnderTest methodUnderTest, StoredCandidate candidate) {
         try {
@@ -198,9 +150,6 @@ public class AtomicRecordService {
         ModuleManager instance = ModuleManager.getInstance(insidiousService.getProject());
 
         Module[] modulesList = instance.getModules();
-        if (modulesList == null) {
-            return returnFileList;
-        }
 
         Map<String, Boolean> checkedPaths = new HashMap<>();
         for (Module module : modulesList) {
@@ -234,20 +183,27 @@ public class AtomicRecordService {
 
 
     private String getFilenameForClass(String classname, Module module) {
-        String destinationFileName = separator + classname + ".json";
 
+        String destinationFileName = separator + classname + ".json";
+        String defaultPath = projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
         if (module == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+            return defaultPath;
         }
 
         VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
-
         if (moduleDirectoryFile == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+            return defaultPath;
+        }
+        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
+
+        // sometimes returned virtual file is a location in build
+        // artifact this removes it from file location
+        int indexBuild = testContentPathFromModule.indexOf("/build/generated/sources");
+        if (indexBuild != -1) {
+            testContentPathFromModule = testContentPathFromModule.substring(0, indexBuild);
         }
 
-        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
-        String testResourcesPathFromModulePath = testContentPathFromModule +
+        String testResourcesPathFromModulePath = testContentPathFromModule + separator +
                 TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
 
         return testResourcesPathFromModulePath + destinationFileName;
@@ -255,18 +211,32 @@ public class AtomicRecordService {
 
     private Module getModuleForClass(PsiClass psiClassResult) {
         final ProjectFileIndex index = ProjectRootManager.getInstance(psiClassResult.getProject()).getFileIndex();
-        return index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile());
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<Module>) () -> index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile()));
     }
 
     public Module guessModuleForClassName(String className) {
+        if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+            InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+            return null;
+        }
+
         Project project = insidiousService.getProject();
 
         PsiClass psiClass;
         try {
             psiClass = ApplicationManager.getApplication()
                     .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                                    .findClass(className, GlobalSearchScope.allScope(project)))).get();
+                            (Computable<PsiClass>) () -> {
+                                if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+                                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete",
+                                            NotificationType.WARNING);
+                                    return null;
+                                }
+
+                                return JavaPsiFacade.getInstance(project)
+                                        .findClass(className, GlobalSearchScope.allScope(project));
+                            })).get();
             if (psiClass == null) {
                 logger.warn("Class not found [" + className + "] for saving atomic records");
             } else {
@@ -369,6 +339,14 @@ public class AtomicRecordService {
         if (!parentDir.exists()) {
             parentDir.mkdirs();
         }
+
+        // modify fileName
+        String newFileName = file.getName()
+                                .replace("<", "_")
+                                .replace(">", "_");
+        newFileName = file.getParentFile().getPath() + separator + newFileName;
+        file = new File(newFileName);
+
         logger.info("[ATRS] writing to file : " + file.getName());
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicRecord);
@@ -379,6 +357,11 @@ public class AtomicRecordService {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
                         NotificationType.INFORMATION);
             }
+//            VirtualFile virtialFile = VirtualFileManager.getInstance()
+//                    .findFileByNioPath(file.getParentFile().toPath());
+//            if (virtialFile != null) {
+//                virtialFile.refresh(false, false);
+//            }
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
             logger.error(e.getMessage(), e);
@@ -450,6 +433,34 @@ public class AtomicRecordService {
                 recordsMap.put(classname, record);
             }
         }
+        for (Map.Entry<String, AtomicRecord> stringAtomicRecordEntry : recordsMap.entrySet()) {
+            AtomicRecord record = stringAtomicRecordEntry.getValue();
+            for (Map.Entry<String, List<DeclaredMock>> stringListEntry : record.getDeclaredMockMap().entrySet()) {
+                String methodHashKey = stringListEntry.getKey();
+
+                List<DeclaredMock> mockList = stringListEntry.getValue();
+                for (DeclaredMock declaredMock : mockList) {
+                    if (declaredMock.getMethodHashKey() == null) {
+                        declaredMock.setMethodHashKey(methodHashKey);
+                    }
+                }
+
+            }
+            for (Map.Entry<String, List<StoredCandidate>> stringListEntry : record.getStoredCandidateMap().entrySet()) {
+                String methodHashKey = stringListEntry.getKey();
+                String[] keyParts = methodHashKey.split("#");
+
+                List<StoredCandidate> mockList = stringListEntry.getValue();
+                for (StoredCandidate storedCandidate : mockList) {
+                    storedCandidate.setMethod(new MethodUnderTest(keyParts[1],
+                            keyParts.length == 3 ? keyParts[2] : record.getClassname()
+                            , 0, keyParts[0]));
+                }
+
+            }
+
+        }
+
         return recordsMap;
     }
 
@@ -476,8 +487,11 @@ public class AtomicRecordService {
             }
             InputStream inputStream = new FileInputStream(file);
             return objectMapper.readValue(inputStream, AtomicRecord.class);
+        } catch (MismatchedInputException e) {
+            logger.warn("file is empty: " + file.getAbsolutePath());
+            return null;
         } catch (IOException e) {
-            logger.error("Exception getting atomic record from file", e);
+            logger.warn("Exception getting atomic record from file", e);
             return null;
         }
     }
@@ -494,16 +508,23 @@ public class AtomicRecordService {
         return record.getStoredCandidateMap().getOrDefault(methodUnderTest.getMethodHashKey(), List.of());
     }
 
-    public void deleteStoredCandidate(String className, String methodKey, String candidateId) {
-        if (className == null || methodKey == null) {
+    public void deleteStoredCandidate(MethodUnderTest methodUnderTest, String candidateId) {
+        if (methodUnderTest.getClassName() == null || methodUnderTest.getMethodHashKey() == null) {
             return;
         }
-        AtomicRecord record = classAtomicRecordMap.get(className);
-        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
+        AtomicRecord record = classAtomicRecordMap.get(methodUnderTest.getClassName());
+        Map<String, List<StoredCandidate>> storedCandidateMap = record.getStoredCandidateMap();
+        if (!storedCandidateMap.containsKey(methodUnderTest.getMethodHashKey())) {
+            // this shouldnt have happened
+            return;
+        }
+        List<StoredCandidate> storedCandidates = storedCandidateMap.get(methodUnderTest.getMethodHashKey());
+        if (storedCandidates.size() == 0) {
             return;
         }
         StoredCandidate candidateToRemove = null;
-        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap().get(methodKey);
+        List<StoredCandidate> existingStoredCandidates = storedCandidateMap
+                .get(methodUnderTest.getMethodHashKey());
 
         for (StoredCandidate candidate : existingStoredCandidates) {
             if (candidate.getCandidateId() != null &&
@@ -515,7 +536,8 @@ public class AtomicRecordService {
         if (candidateToRemove != null) {
             existingStoredCandidates.remove(candidateToRemove);
         }
-        writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.DELETE_CANDIDATE,
+        writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName())), record,
+                FileUpdateType.DELETE_CANDIDATE,
                 useNotifications);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted", null);
         insidiousService.triggerGutterIconReload();
@@ -539,26 +561,26 @@ public class AtomicRecordService {
     }
 
     //call to sync at session close
-    public void writeAll() {
-        try {
-            if (classAtomicRecordMap.size() == 0) {
-                return;
-            }
-            for (String classname : classAtomicRecordMap.keySet()) {
-                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
-                try {
-                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
-                            FileUpdateType.UPDATE_CANDIDATE,
-                            false);
-                } catch (Exception e) {
-                    // class not found... class was renamed
-                    // this record is now orphan
-                }
-            }
-        } catch (Exception e) {
-            logger.info("Failed to sync on exit " + e);
-        }
-    }
+//    public void writeAll() {
+//        try {
+//            if (classAtomicRecordMap.size() == 0) {
+//                return;
+//            }
+//            for (String classname : classAtomicRecordMap.keySet()) {
+//                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
+//                try {
+//                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
+//                            FileUpdateType.UPDATE_CANDIDATE,
+//                            false);
+//                } catch (Exception e) {
+//                    // class not found... class was renamed
+//                    // this record is now orphan
+//                }
+//            }
+//        } catch (Exception e) {
+//            logger.info("Failed to sync on exit " + e);
+//        }
+//    }
 
     public void checkPreRequisites() {
         classAtomicRecordMap = updateMap();
@@ -582,7 +604,8 @@ public class AtomicRecordService {
      */
     public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
 
-        if (!classAtomicRecordMap.containsKey(methodUnderTest.getClassName())) {
+        if (classAtomicRecordMap == null || methodUnderTest == null ||
+                !classAtomicRecordMap.containsKey(methodUnderTest.getClassName())) {
             return List.of();
         }
         Map<String, List<DeclaredMock>> declaredMockMap = classAtomicRecordMap
@@ -592,7 +615,9 @@ public class AtomicRecordService {
         if (!declaredMockMap.containsKey(methodHashKey)) {
             return List.of();
         }
-        return declaredMockMap.get(methodHashKey);
+        return declaredMockMap.get(methodHashKey)
+                .stream().map(DeclaredMock::new)
+                .collect(Collectors.toList());
 
 
     }
@@ -623,14 +648,23 @@ public class AtomicRecordService {
 
     }
 
-    public void saveMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+    public List<StoredCandidate> getAllTestCandidates() {
+        return classAtomicRecordMap.values()
+                .stream().map(e -> e.getStoredCandidateMap().values())
+                .flatMap(Collection::stream)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+    }
+
+    public String saveMockDefinition(DeclaredMock declaredMock) {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("classname", methodUnderTest.getClassName());
-        jsonObject.put("methodname", methodUnderTest.getName());
-        jsonObject.put("signature", methodUnderTest.getSignature());
+        jsonObject.put("className", declaredMock.getFieldTypeName());
+        jsonObject.put("methodName", declaredMock.getMethodName());
+        jsonObject.put("signature", declaredMock.getMethodHashKey());
 
         AtomicRecord record;
-        String className = methodUnderTest.getClassName();
+        String className = declaredMock.getFieldTypeName();
         if (!classAtomicRecordMap.containsKey(className)) {
             record = new AtomicRecord(className);
             classAtomicRecordMap.put(className, record);
@@ -640,7 +674,7 @@ public class AtomicRecordService {
 
         List<DeclaredMock> existingMocks;
         Map<String, List<DeclaredMock>> declaredMockMap = record.getDeclaredMockMap();
-        String methodHashKey = methodUnderTest.getMethodHashKey();
+        String methodHashKey = declaredMock.getMethodHashKey();
 
         if (!declaredMockMap.containsKey(methodHashKey)) {
             existingMocks = new ArrayList<>();
@@ -656,6 +690,15 @@ public class AtomicRecordService {
                 existingMocks.remove(existingMock);
                 break;
             }
+            if (
+                    isSameWhenMatcher(existingMock.getWhenParameter(), declaredMock.getWhenParameter())
+                    && isSameThenMatcher(existingMock.getThenParameter(), declaredMock.getThenParameter())
+            ) {
+                updated = true;
+                existingMocks.remove(existingMock);
+                declaredMock.setId(existingMock.getId());
+                break;
+            }
         }
 
         existingMocks.add(declaredMock);
@@ -664,20 +707,54 @@ public class AtomicRecordService {
             eventname = "UPDATED_EXISTING_MOCK";
         }
         UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
-        writeToFile(
-                new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
-                record,
+        File file = new File(
+                getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
+        writeToFile(file, record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
+        return declaredMock.getId();
     }
 
-    public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+    private boolean isSameWhenMatcher(List<ParameterMatcher> whenParameter, List<ParameterMatcher> whenParameter1) {
+        if (whenParameter.size() != whenParameter1.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < whenParameter.size(); i++) {
+            ParameterMatcher left = whenParameter.get(i);
+            ParameterMatcher right = whenParameter1.get(i);
+            if (!left.equals(right)) {
+                return false;
+            }
+
+        }
+        return true;
+
+    }
+    private boolean isSameThenMatcher(List<ThenParameter> thenParameterList, List<ThenParameter> thenParameterListNew) {
+        if (thenParameterList.size() != thenParameterListNew.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < thenParameterList.size(); i++) {
+            ThenParameter left = thenParameterList.get(i);
+            ThenParameter right = thenParameterListNew.get(i);
+            if (!left.equals(right)) {
+                return false;
+            }
+
+        }
+        return true;
+
+    }
+
+    public void deleteMockDefinition(DeclaredMock declaredMock) {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("classname", methodUnderTest.getClassName());
-        jsonObject.put("methodname", methodUnderTest.getName());
-        jsonObject.put("signature", methodUnderTest.getSignature());
+        jsonObject.put("className", declaredMock.getFieldTypeName());
+        jsonObject.put("methodName", declaredMock.getMethodName());
+        jsonObject.put("signature", declaredMock.getMethodHashKey());
 
         AtomicRecord record;
-        String className = methodUnderTest.getClassName();
+        String className = declaredMock.getFieldTypeName();
         if (!classAtomicRecordMap.containsKey(className)) {
             return;
         } else {
@@ -686,7 +763,7 @@ public class AtomicRecordService {
 
         List<DeclaredMock> existingMocks;
         Map<String, List<DeclaredMock>> declaredMockMap = record.getDeclaredMockMap();
-        String methodHashKey = methodUnderTest.getMethodHashKey();
+        String methodHashKey = declaredMock.getMethodHashKey();
 
         if (!declaredMockMap.containsKey(methodHashKey)) {
             return;
@@ -717,24 +794,25 @@ public class AtomicRecordService {
         return classAtomicRecordMap.get(fullyClassifiedClassName).getStoredCandidateMap();
     }
 
-    public StoredCandidate getStoredCandidateFor(MethodUnderTest methodUnderTest, TestCandidateMetadata testCandidate) {
-        StoredCandidate potentialCandidate = new StoredCandidate(testCandidate);
+    public StoredCandidate getStoredCandidateFor(TestCandidateMetadata testCandidate) {
+        return getStoredCandidate(new StoredCandidate(testCandidate));
+    }
 
-
-//        StoredCandidate candidate;
-        AtomicRecord ars = classAtomicRecordMap.get(testCandidate.getFullyQualifiedClassname());
+    public StoredCandidate getStoredCandidate(StoredCandidate potentialCandidate) {
+        MethodUnderTest methodUnderTest = potentialCandidate.getMethod();
+        AtomicRecord ars = classAtomicRecordMap.get(potentialCandidate.getMethod().getClassName());
         if (ars == null) {
-            return potentialCandidate;
+            return null;
         }
 
         List<StoredCandidate> methodStoredCandidates = ars.getStoredCandidateMap()
                 .get(methodUnderTest.getMethodHashKey());
         if (methodStoredCandidates == null || methodStoredCandidates.size() == 0) {
-            return potentialCandidate;
+            return null;
         }
 
         for (StoredCandidate methodStoredCandidate : methodStoredCandidates) {
-            List<Parameter> arguments = testCandidate.getMainMethod().getArguments();
+            List<String> arguments = potentialCandidate.getMethodArguments();
             if (methodStoredCandidate.getMethodArguments().size() == arguments.size()) {
                 boolean match = true;
                 List<String> methodArguments = methodStoredCandidate.getMethodArguments();
@@ -754,7 +832,7 @@ public class AtomicRecordService {
         }
 
 
-        return potentialCandidate;
+        return null;
     }
 
     public enum FileUpdateType {

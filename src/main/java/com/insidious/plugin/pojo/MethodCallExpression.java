@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
@@ -7,10 +8,10 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import org.objectweb.asm.Opcodes;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MethodCallExpression implements Expression, Serializable {
 
     private static final Logger logger = LoggerUtil.getInstance(MethodCallExpression.class);
@@ -41,16 +43,27 @@ public class MethodCallExpression implements Expression, Serializable {
     private boolean usesFields;
     private int methodDefinitionId;
 
-    public MethodCallExpression() {
+    public long getReturnNanoTime() {
+        return returnNanoTime;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof MethodCallExpression)) {
-            return false;
-        }
-        MethodCallExpression mceObject = (MethodCallExpression) obj;
-        return mceObject.id == this.id;
+    public void setReturnNanoTime(long returnNanoTime) {
+        this.returnNanoTime = returnNanoTime;
+    }
+
+    public long getEnterNanoTime() {
+        return enterNanoTime;
+    }
+
+    public void setEnterNanoTime(long enterNanoTime) {
+        this.enterNanoTime = enterNanoTime;
+    }
+
+    private long returnNanoTime;
+    private long enterNanoTime;
+
+
+    public MethodCallExpression() {
     }
 
     public MethodCallExpression(
@@ -83,6 +96,16 @@ public class MethodCallExpression implements Expression, Serializable {
         methodDefinitionId = original.methodDefinitionId;
         usesFields = original.usesFields;
         argumentProbes = original.argumentProbes;
+    }
+
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof MethodCallExpression)) {
+            return false;
+        }
+        MethodCallExpression mceObject = (MethodCallExpression) obj;
+        return mceObject.id == this.id;
     }
 
     public int getThreadId() {
@@ -571,6 +594,10 @@ public class MethodCallExpression implements Expression, Serializable {
                 (", subject=" + (subject == null ? "" : subject.getType())) +
                 ", id=" + id +
                 '}';
+    }
+
+    public boolean isConstructor() {
+        return methodName.equals("<init>");
     }
 
     @Override

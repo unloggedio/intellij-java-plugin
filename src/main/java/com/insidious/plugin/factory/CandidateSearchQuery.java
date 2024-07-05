@@ -4,6 +4,7 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CandidateSearchQuery {
@@ -39,17 +40,12 @@ public class CandidateSearchQuery {
         this.loadCalls = false;
     }
 
-    public static CandidateSearchQuery fromMethod(MethodAdapter focussedMethod,
-                                                  List<String> interfaceQualifiedNamesWithSameMethod,
-                                                  String argumentsDescriptor, CandidateFilterType filterType) {
+    public CandidateSearchQuery() {
 
-        return new CandidateSearchQuery(
-                MethodUnderTest.fromMethodAdapter(focussedMethod),
-                argumentsDescriptor,
-                interfaceQualifiedNamesWithSameMethod,
-                filterType,
-                false
-        );
+        loadCalls = false;
+        interfaceNames = new ArrayList<>();
+        argumentsDescriptor = "";
+        candidateFilterType = CandidateFilterType.ALL;
     }
 
     public static CandidateSearchQuery fromMethod(
@@ -68,20 +64,6 @@ public class CandidateSearchQuery {
         );
     }
 
-    public static CandidateSearchQuery cloneWithNewClassName(CandidateSearchQuery candidateSearchQuery, String interfaceName) {
-        MethodUnderTest existingMethodUnderTest = candidateSearchQuery.methodUnderTest;
-        MethodUnderTest newMethodUnderTest = new MethodUnderTest(existingMethodUnderTest.getName(),
-                existingMethodUnderTest.getSignature(),
-                existingMethodUnderTest.getMethodHash(), interfaceName);
-        return new CandidateSearchQuery(
-                newMethodUnderTest,
-                candidateSearchQuery.argumentsDescriptor,
-                candidateSearchQuery.interfaceNames,
-                candidateSearchQuery.candidateFilterType,
-                candidateSearchQuery.loadCalls
-        );
-
-    }
 
     public boolean isLoadCalls() {
         return loadCalls;

@@ -76,7 +76,7 @@ public class MockFactory {
             parameterTypeName = parameterTypeName.substring(1);
         }
 
-        parameterTypeName = ClassTypeUtils.getDottedClassName(parameterTypeName);
+        parameterTypeName = ClassTypeUtils.getDescriptorToDottedClassName(parameterTypeName);
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
 

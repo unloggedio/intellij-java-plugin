@@ -2,200 +2,332 @@ package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
+import com.insidious.plugin.ui.library.ItemLifeCycleListener;
+import com.insidious.plugin.ui.methodscope.CandidateFilterType;
+import com.insidious.plugin.ui.stomp.TestCandidateSaveForm;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.notification.Notification;
+import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.popup.*;
-import com.intellij.openapi.util.NlsSafe;
-import com.intellij.psi.*;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.PsiJavaParserFacadeImpl;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
-import com.intellij.ui.components.OnOffButton;
-import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import static com.intellij.uiDesigner.core.GridConstraints.*;
-
-public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, OnSaveListener {
+public class MockDefinitionListPanel implements OnSaveListener {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
     private final InsidiousService insidiousService;
     private final MethodUnderTest methodUnderTest;
     private final PsiMethodCallExpression methodCallExpression;
-    private final JPanel itemListPanel = new JPanel();
-    private final String fieldName;
-    private final String parentClassName;
-    private final OnOffButton fieldMockSwitch;
-    private JPanel mockDefinitionTitlePanel;
+    //    private final OnOffButton fieldMockSwitch;
+    private final PsiMethod targetMethod;
+    private final Set<DeclaredMock> selectedMocks = new HashSet<>();
+    private final List<DeclaredMock> unsavedMocks = new ArrayList<>();
     private JLabel mockedMethodText;
-    private JLabel mockEnableSwitchLabel;
-    private JPanel mockSwitchContainer;
-    private JPanel mockFieldSwitchPanel;
-    private JButton addNewMockButton;
+    //    private JButton addNewMockButton;
     private JPanel savedMocksListParent;
-    private JPanel savedMocksTitlePanel;
-    private JPanel newMockButtonPanel;
-    private JPanel titleEastPanel;
-    private JPanel titleWestPanel;
-    private JPanel mainPanel;
-    private JPanel titlePanelParent;
-    private JScrollPane savedItemScrollPanel;
-    private JPanel northPanel;
-    private JLabel mockCountLabel;
-    private JLabel permanentMockHelpLabel;
-    private JBPopup componentPopUp;
-    private List<DeclaredMock> declaredMockList;
-
-    public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
-        this.methodCallExpression = methodCallExpression;
-
-        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
-        this.fieldName = fieldExpression.getText();
-        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
-        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
-
-        savedItemScrollPanel.setViewportView(itemListPanel);
-        itemListPanel.setBorder(BorderFactory.createEmptyBorder());
-        itemListPanel.setAlignmentY(0);
-
-        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-        PsiType fieldTypeSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
-                parentOfType, PsiSubstitutor.EMPTY).substitute(fieldPsiInstance.getType());
-
-        parentClassName = parentOfType.getQualifiedName();
-
-        insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
-
-        PsiMethod targetMethod = methodCallExpression.resolveMethod();
-        methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
-        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
-            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
+    private JPanel controlPanel;    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
+        @Override
+        public void onSelect(DeclaredMock item) {
+            selectedMocks.add(item);
         }
 
-        if (fieldTypeSubstitutor != null) {
-            String actualClass = fieldTypeSubstitutor.getCanonicalText();
-            methodUnderTest.setClassName(actualClass);
+        @Override
+        public void onClick(DeclaredMock item) {
+
         }
 
-        boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);
-//        boolean fieldMockIsActive = insidiousService.isPermanentMocks();
-        fieldMockSwitch = new OnOffButton();
-        fieldMockSwitch.setSelected(fieldMockIsActive);
+        @Override
+        public void onUnSelect(DeclaredMock item) {
+            selectedMocks.remove(item);
 
-        permanentMockHelpLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
+        }
 
+        @Override
+        public void onDelete(DeclaredMock item) {
+            insidiousService.deleteMockDefinition(item);
+            loadDefinitions(false, true);
+        }
 
-                insidiousService.getProject()
-                        .getMessageBus().syncPublisher(Notifications.TOPIC)
-                        .notify(new Notification(InsidiousNotification.DISPLAY_ID, "Permanent mocks",
-                                "Activate Persistent Mocking to simulate call responses when triggered by external " +
-                                        "methods.\n All the enabled mocks will work for all code executions",
-                                NotificationType.INFORMATION));
-
-
-            }
-        });
-
-
-        mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
-        if (!insidiousService.isAgentConnected()) {
-            fieldMockSwitch.setEnabled(false);
-            fieldMockSwitch.setToolTipText("Start your application with unlogged-sdk to enable permanent mocking");
-        } else {
-            fieldMockSwitch.addActionListener(e -> {
-                boolean isActive = fieldMockSwitch.isSelected();
-                logger.warn("Field active changed: " + isActive);
-                if (isActive) {
-                    // inject only those mock definitions which are marked as enabled
-                    List<DeclaredMock> declaredMocksOf = insidiousService
-                            .getDeclaredMocksOf(methodUnderTest)
-                            .stream()
-                            .filter(insidiousService::isMockEnabled)
-                            .collect(Collectors.toList());
-
-                    insidiousService.injectMocksInRunningProcess(declaredMocksOf);
-                    insidiousService.enableFieldMock(parentClassName, fieldName);
-                } else {
-                    // try to remove all mocks irrespective of they are enabled or not
-                    List<DeclaredMock> declaredMocksOf = insidiousService.getDeclaredMocksOf(methodUnderTest);
-                    insidiousService.removeMocksInRunningProcess(declaredMocksOf);
-                    insidiousService.disableFieldMock(parentClassName, fieldName);
-                }
+        @Override
+        public void onEdit(DeclaredMock item) {
+            insidiousService.showMockEditor(item, declaredMock -> {
+                unsavedMocks.remove(item);
+                loadDefinitions(false, true);
             });
         }
+    };
+    private JPanel mainPanel;
+    private JScrollPane savedItemScrollPanel;
+    private JLabel mockCountLabel;
+    private JPanel titlePanelParent;
+    private JPanel mockDefinitionTitlePanel;
+    private JPanel titleEastPanel;
+    private JPanel northPanel;
+    private JPanel mockInfoPanel;
+    private JLabel infoPanelTitleLabel;
+    private JLabel infoItemLine1;
+    private JLabel infoItemLine2;
+    private JLabel infoItemLine3;
+    private JLabel enabledMockInfoLabel;
+    private JBPopup componentPopUp;
+    private List<DeclaredMock> declaredMockList;
+    public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
+        this.methodCallExpression = methodCallExpression;
+        this.insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
 
+        infoPanelTitleLabel.setIcon(AllIcons.General.Information);
+        enabledMockInfoLabel.setIcon(AllIcons.General.Information);
+        infoItemLine1.setIcon(AllIcons.General.Modified);
+        infoItemLine2.setIcon(AllIcons.General.Modified);
+        infoItemLine3.setIcon(AllIcons.General.Modified);
+
+
+        targetMethod = methodCallExpression.resolveMethod();
+        assert targetMethod != null;
+
+
+        methodUnderTest = MethodUnderTest.fromPsiCallExpression(methodCallExpression);
+
+        CandidateSearchQuery query = new CandidateSearchQuery(
+                methodUnderTest, methodUnderTest.getSignature(), new ArrayList<>(),
+                CandidateFilterType.METHOD, false
+        );
+        SessionInstanceInterface sessionInstance = insidiousService.getSessionInstance();
+        if (sessionInstance == null) {
+            InsidiousNotification.notifyMessage("" +
+                            "No session found. Please start your application with unlogged-sdk to create a session",
+                    NotificationType.ERROR);
+            return;
+        }
+        List<MethodCallExpression> mceList = sessionInstance
+                .getMethodCallExpressions(query);
+
+        @Nullable PsiClass containingClass = PsiTreeUtil.getParentOfType(methodCallExpression,
+                PsiClass.class);
+        if (containingClass == null) {
+            InsidiousNotification.notifyMessage(
+                    "Failed to locate parent class for method call expression: " + methodCallExpression.getText()
+                    , NotificationType.ERROR);
+            throw new IllegalArgumentException(methodCallExpression.getText());
+        }
+        String sourceClassName = containingClass.getQualifiedName();
+        for (MethodCallExpression methodCallExpression1 : mceList) {
+            @Nullable DeclaredMock unsavedMock = TestCandidateSaveForm.getDeclaredMock(
+                    methodCallExpression1, methodCallExpression, sourceClassName
+            );
+            if (unsavedMock == null) {
+                continue;
+            }
+            unsavedMock.setName("#unsaved - " + unsavedMock.getName());
+            unsavedMocks.add(unsavedMock);
+        }
+
+
+        targetMethod.getParameterList();
         int argumentCount = targetMethod.getParameterList().getParametersCount();
+        String argumentCountText = "<small>" + (argumentCount == 1 ? "1 Argument" : (argumentCount + " Arguments")) +
+                "</small>";
+        String text = "<html>" + methodCallExpression.getMethodExpression().getText()
+                + "( " + argumentCountText + " )" + "</html>";
         mockedMethodText.setText(
-                methodCallExpression.getMethodExpression().getText()
-                        + "( " + (
-                        argumentCount == 1 ? "1 Argument" : (argumentCount + " Arguments")
-                ) + " )"
+                text
         );
 
-        addNewMockButton.addActionListener(e -> showMockEditor(null));
-        loadDefinitions(true);
+
+        AnAction addAction = new AnAction(() -> "Create New", AllIcons.General.Add) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                insidiousService.showMockCreator(
+                        new JavaMethodAdapter(targetMethod),
+                        methodCallExpression, declaredMock -> loadDefinitions(false, true));
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+        AnAction refreshAction = new AnAction(AllIcons.Actions.Refresh) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                loadDefinitions(false, true);
+            }
+        };
+
+        AnAction enableMocksAction = new AnAction(() -> "Mock", UIUtils.LINK_ICON) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                if (!insidiousService.isAgentConnected()) {
+                    InsidiousNotification.notifyMessage(
+                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                            NotificationType.WARNING
+                    );
+                    return;
+                }
+                if (selectedMocks.isEmpty()) {
+                    InsidiousNotification.notifyMessage(
+                            "Select mocks to inject",
+                            NotificationType.WARNING
+                    );
+                    return;
+                }
+                insidiousService.enableMock(selectedMocks);
+                loadDefinitions(false, false);
+            }
+
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+
+        };
+
+
+        AnAction disableMocksAction = new AnAction(() -> "Un-Mock", UIUtils.UNLINK_ICON) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                if (!insidiousService.isAgentConnected()) {
+                    InsidiousNotification.notifyMessage(
+                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                            NotificationType.WARNING
+                    );
+                    return;
+                }
+                if (selectedMocks.isEmpty()) {
+                    InsidiousNotification.notifyMessage(
+                            "Select mocks to remove",
+                            NotificationType.WARNING
+                    );
+                    return;
+                }
+                insidiousService.disableMock(selectedMocks);
+                loadDefinitions(false, false);
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+
+        List<AnAction> action11 = new ArrayList<>();
+        action11.add(refreshAction);
+        action11.add(addAction);
+        action11.add(enableMocksAction);
+        action11.add(disableMocksAction);
+
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+                "Declared Mock Toolbar", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
+
+        controlPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+
+
+        loadDefinitions(true, true);
 
 
     }
 
-    private void loadDefinitions(boolean showAddNewIfEmpty) {
+    private void loadDefinitions(boolean showAddNewIfEmpty, boolean resizePanel) {
         declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
 
-        int savedCandidateCount = declaredMockList.size();
+        List<DeclaredMock> allMocks = new ArrayList<>(declaredMockList);
+        allMocks.addAll(unsavedMocks);
+        int savedCandidateCount = allMocks.size();
 
+
+        JPanel itemListPanel = new JPanel();
+        itemListPanel.setLayout(new GridLayout(0, 1));
+        GridBagLayout mgr = new GridBagLayout();
+        itemListPanel.setLayout(mgr);
+        itemListPanel.setAlignmentY(0);
+        itemListPanel.setAlignmentX(0);
+
+        savedItemScrollPanel.setViewportView(itemListPanel);
+        itemListPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        String mockCountLabelText;
         if (savedCandidateCount == 1) {
-            mockCountLabel.setText(savedCandidateCount + " declared mock");
+            mockCountLabelText = savedCandidateCount + " declared mock";
         } else {
-            mockCountLabel.setText(savedCandidateCount + " declared mocks");
+            mockCountLabelText = savedCandidateCount + " declared mocks";
         }
+        mockCountLabel.setText("<html><small>" + mockCountLabelText + "</html></small>");
+        final int PANEL_HEIGHT = 135;
         if (savedCandidateCount == 0 && showAddNewIfEmpty) {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                showMockEditor(null);
+            savedMocksListParent.setVisible(false);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression,
+                        declaredMock -> loadDefinitions(false, true));
             });
         } else {
+            savedMocksListParent.setVisible(true);
 
-            itemListPanel.removeAll();
-            itemListPanel.setLayout(new GridLayout(savedCandidateCount, 1));
             for (int i = 0; i < savedCandidateCount; i++) {
-                DeclaredMock declaredMock = declaredMockList.get(i);
-                SavedMockItemPanel savedMockItem = new SavedMockItemPanel(declaredMock, this,
-                        insidiousService.isMockEnabled(declaredMock));
-                GridConstraints constraints = new GridConstraints(
-                        i, 0, 1, 1, ANCHOR_NORTH,
-                        GridConstraints.FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK,
-                        SIZEPOLICY_FIXED,
-                        new Dimension(-1, 75),
-                        new Dimension(-1, 75),
-                        new Dimension(-1, 75)
-                );
-                Component component = savedMockItem.getComponent();
-                itemListPanel.add(component, constraints);
+                DeclaredMock declaredMock = allMocks.get(i);
+
+                DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
+                        itemLifeCycleListener, insidiousService);
+
+                if (selectedMocks.contains(declaredMock)) {
+                    declaredMockItemPanel.setSelected(true);
+                }
+                if (unsavedMocks.contains(declaredMock)) {
+                    declaredMockItemPanel.setUnsaved(true);
+                }
+
+                Component component = declaredMockItemPanel.getComponent();
+                itemListPanel.add(component, createGBCForLeftMainComponent(itemListPanel.getComponentCount()));
             }
+            itemListPanel.add(new JPanel(), createGBCForFakeComponent(itemListPanel.getComponentCount()));
 
             savedItemScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-            int containerHeight = Math.min(300, savedCandidateCount * 75);
 
-            savedItemScrollPanel.getViewport().setSize(new Dimension(-1, containerHeight));
-            savedItemScrollPanel.getViewport().setPreferredSize(new Dimension(-1, containerHeight));
-            savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
-            savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
+            int containerHeight = Math.min(500, itemListPanel.getComponentCount() * PANEL_HEIGHT);
+            if (resizePanel) {
+                Dimension currentSize = savedItemScrollPanel.getSize();
+                if (currentSize.getHeight() < containerHeight) {
+                    savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
+                    savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
+                }
+            }
 
 
             itemListPanel.revalidate();
@@ -206,88 +338,15 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             mainPanel.revalidate();
             if (componentPopUp != null) {
                 Dimension currentSize = componentPopUp.getSize();
-                if (currentSize != null) {
+                if (currentSize != null && resizePanel && currentSize.getHeight() < (containerHeight + 140)) {
                     componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 140));
                 }
             }
         }
     }
 
-    public void showMockEditor(DeclaredMock declaredMock) {
-        JBPopup editorPopup = null;
-
-        MockDefinitionEditor mockDefinitionEditor;
-        if (declaredMock == null) {
-            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, methodCallExpression,
-                    methodCallExpression.getProject(), this);
-        } else {
-            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, new DeclaredMock(declaredMock),
-                    methodCallExpression.getProject(), this);
-        }
-
-        JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
-
-        ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                .createComponentPopupBuilder(gutterMethodComponent, null);
-
-        editorPopup = gutterMethodComponentPopup
-                .setProject(methodCallExpression.getProject())
-                .setShowBorder(true)
-                .setShowShadow(true)
-                .setFocusable(true)
-                .setRequestFocus(true)
-                .setResizable(true)
-                .setCancelOnClickOutside(true)
-                .setCancelOnOtherWindowOpen(true)
-                .setCancelKeyEnabled(true)
-                .setBelongsToGlobalPopupStack(false)
-                .setTitle("Mock Editor")
-                .addListener(new JBPopupListener() {
-                    @Override
-                    public void onClosed(LightweightWindowEvent event) {
-                        JBPopupListener.super.onClosed(event);
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            loadDefinitions(false);
-                        });
-                    }
-                })
-                .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-                .createPopup();
-        editorPopup.showUnderneathOf(addNewMockButton);
-
-        mockDefinitionEditor.setPopupHandle(editorPopup);
-
-
-    }
-
     public JComponent getComponent() {
         return mainPanel;
-    }
-
-    @Override
-    public void onUpdateRequest(DeclaredMock declaredMock) {
-        showMockEditor(declaredMock);
-    }
-
-    @Override
-    public void onDeleteRequest(DeclaredMock declaredMock) {
-        insidiousService.deleteMockDefinition(methodUnderTest, declaredMock);
-        ApplicationManager.getApplication().invokeLater(() -> {
-            loadDefinitions(false);
-        });
-    }
-
-    @Override
-    public void onEnable(DeclaredMock declaredMock) {
-        insidiousService.enableMock(declaredMock);
-//        if (!fieldMockSwitch.isSelected()) {
-//            fieldMockSwitch.setSelected(true);
-//        }
-    }
-
-    @Override
-    public void onDisable(DeclaredMock declaredMock) {
-        insidiousService.disableMock(declaredMock);
     }
 
     public void setPopupHandle(JBPopup componentPopUp) {
@@ -295,10 +354,50 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     }
 
     @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
-        insidiousService.saveMockDefinition(declaredMock, this.methodUnderTest);
+    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+        insidiousService.saveMockDefinition(declaredMock);
         insidiousService.enableMock(declaredMock);
-//        insidiousService.enableFieldMock(parentClassName, fieldName);
-//        fieldMockSwitch.setSelected(true);
     }
+
+    private GridBagConstraints createGBCForFakeComponent(int yIndex) {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = yIndex;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = JBUI.insetsBottom(8);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+        return gbc;
+    }
+
+    private GridBagConstraints createGBCForLeftMainComponent(int yIndex) {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = yIndex;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = JBUI.insetsBottom(0);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+        return gbc;
+    }
+
+
+
+
 }

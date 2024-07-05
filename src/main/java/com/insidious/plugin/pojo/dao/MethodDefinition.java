@@ -2,6 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.MethodInfo;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
@@ -42,8 +43,11 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
     @DatabaseField
     private int lineCount;
 
+//    @DatabaseField
     private String methodHash;
+//    @DatabaseField
     private String sourceFileName;
+//    @DatabaseField
     private int classId;
 
     public MethodDefinition(int id, String argumentTypes, String methodName, boolean isStatic,
@@ -70,20 +74,21 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
         methodDefinition.setMethodAccess(methodInfo.getAccess());
         methodDefinition.setMethodName(methodInfo.getMethodName());
         methodDefinition.setId(methodInfo.getMethodId());
+
         methodDefinition.setLineCount(lineCount);
 
 
         methodDefinition.setMethodHash(methodInfo.getMethodHash());
         methodDefinition.setSourceFileName(methodInfo.getSourceFileName());
-        methodDefinition.setOwnerType(ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
+        methodDefinition.setOwnerType(ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
 
-        List<String> descriptorParsed = ClassTypeUtils.splitMethodDescriptor(methodInfo.getMethodDesc());
+        List<String> descriptorParsed = MethodSignatureParser.parseMethodSignature(methodInfo.getMethodDesc());
 
         methodDefinition.setReturnType(
-                ClassTypeUtils.getJavaClassName(descriptorParsed.get(descriptorParsed.size() - 1)));
+                ClassTypeUtils.getDescriptorToDottedClassName(descriptorParsed.get(descriptorParsed.size() - 1)));
         descriptorParsed.remove(descriptorParsed.size() - 1);
         methodDefinition.setArgumentTypes(StringUtils.join(descriptorParsed.stream()
-                .map(ClassTypeUtils::getJavaClassName)
+                .map(ClassTypeUtils::getDescriptorToDottedClassName)
                 .collect(Collectors.toList()), ","));
 
         methodDefinition.setClassId(classInfo.getClassId());

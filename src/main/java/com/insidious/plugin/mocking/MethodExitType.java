@@ -9,7 +9,7 @@ public enum MethodExitType {
             case EXCEPTION:
                 return "Throw exception";
             case NORMAL:
-                return "Return class instance";
+                return "Return";
             case NULL:
                 return "Return null";
         }

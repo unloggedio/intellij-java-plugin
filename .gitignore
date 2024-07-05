@@ -1,6 +1,8 @@
+out/
 build/
 out/
 .idea/
 .DS_STORE
 .gradle/
 *.db
+build.mk

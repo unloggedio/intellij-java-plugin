@@ -170,6 +170,9 @@ public class PendingStatement {
 
         String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
         if (nameUsed != null) {
+            if (nameUsed.contains("$")) {
+                nameUsed =  nameUsed.replace('$', 'D');
+            }
             parameterStringBuilder.append(nameUsed);
             return;
         }
@@ -365,7 +368,7 @@ public class PendingStatement {
 
                 TypeName typeOfParam =
                         ClassTypeUtils.createTypeFromNameString(
-                                ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
+                                ClassTypeUtils.getDescriptorToDottedClassName(objectToDeserialize.getType()));
 //                statementParameters.add(ClassName.bestGuess(typeOfParam));
                 statementParameters.add(typeOfParam);
             }
@@ -400,7 +403,7 @@ public class PendingStatement {
 
             statementBuilder.append(".$L($T.class)");
             statementParameters.add(methodName);
-            statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0)
+            statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getDescriptorToDottedClassName(variables.get(0)
                     .getType())));
 
         }
@@ -592,7 +595,7 @@ public class PendingStatement {
             }
 
             TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
-                    ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
+                    ClassTypeUtils.getDescriptorToDottedClassName(lhsExpression.getType()));
 
             if (!createdVariables.contains(nameFactory.getNameForUse(lhsExpression, null))) {
 
@@ -671,7 +674,7 @@ public class PendingStatement {
         if (isExceptionExcepted) {
             StringBuilder tryCatchEnclosure = new StringBuilder();
             String exceptionType = lhsExpression.getType();
-            exceptionType = ClassTypeUtils.getJavaClassName(exceptionType);
+            exceptionType = ClassTypeUtils.getDescriptorToDottedClassName(exceptionType);
             tryCatchEnclosure
                     .append("try {\n")
                     .append("    ")
@@ -722,7 +725,7 @@ public class PendingStatement {
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
-            variableName = ClassTypeUtils.getJavaClassName(ClassTypeUtils.createVariableName(lhsExpression.getType()));
+            variableName = ClassTypeUtils.createVariableName(ClassTypeUtils.getDescriptorToDottedClassName(lhsExpression.getType()));
 
             if (variableName.endsWith("[]"))
                 // we don't want [] in the name generated from type

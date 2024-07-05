@@ -1,11 +1,14 @@
 package com.insidious.plugin.mocking;
 
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class DeclaredMock {
+public class DeclaredMock implements Comparable<DeclaredMock> {
 
 
     private String id = UUID.randomUUID().toString();
@@ -25,13 +28,15 @@ public class DeclaredMock {
         this.fieldTypeName = declaredMock.fieldTypeName;
         this.fieldName = declaredMock.fieldName;
         this.methodName = declaredMock.methodName;
-        this.whenParameter = declaredMock.whenParameter.stream().map(ParameterMatcher::new).collect(Collectors.toList());
+        this.methodHashKey = declaredMock.methodHashKey;
+        this.whenParameter = declaredMock.whenParameter.stream().map(ParameterMatcher::new)
+                .collect(Collectors.toList());
         this.thenParameter = declaredMock.thenParameter.stream().map(ThenParameter::new).collect(Collectors.toList());
 
     }
 
     public DeclaredMock(String name, String fieldTypeName, String sourceClassName,
-                        String fieldName, String methodName,
+                        String fieldName, String methodName, String methodHashKey,
                         List<ParameterMatcher> whenParameterLists,
                         List<ThenParameter> thenParameterList
     ) {
@@ -42,10 +47,12 @@ public class DeclaredMock {
         this.methodName = methodName;
         this.whenParameter = whenParameterLists;
         this.thenParameter = thenParameterList;
+        this.methodHashKey = methodHashKey;
     }
 
     public DeclaredMock() {
     }
+
 
     public String getSourceClassName() {
         return sourceClassName;
@@ -124,7 +131,10 @@ public class DeclaredMock {
     public void setThenParameter(List<ThenParameter> thenParameter) {
         this.thenParameter = thenParameter;
     }
-
+    @Override
+    public int compareTo(DeclaredMock o) {
+        return this.id.compareTo(o.id);
+    }
     public String getMethodHashKey() {
         return methodHashKey;
     }

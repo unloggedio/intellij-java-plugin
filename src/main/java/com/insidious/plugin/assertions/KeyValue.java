@@ -2,9 +2,9 @@ package com.insidious.plugin.assertions;
 
 public class KeyValue {
     String key;
-    Object value;
+    String value;
 
-    public KeyValue(String key, Object value) {
+    public KeyValue(String key, String value) {
         this.key = key;
         this.value = value;
     }
@@ -13,7 +13,7 @@ public class KeyValue {
         return key;
     }
 
-    public Object getValue() {
+    public String getValue() {
         return value;
     }
 }

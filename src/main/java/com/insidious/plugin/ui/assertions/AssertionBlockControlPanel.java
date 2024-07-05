@@ -12,16 +12,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class AssertionBlockControlPanel {
-    public static final JBColor SELECTED_LOGICAL_OPERATOR_COLOR = new JBColor(new Color(38, 117, 191),
-            new Color(38, 117, 191));
     private final static Logger logger = LoggerUtil.getInstance(AssertionBlockControlPanel.class);
     private final AssertionBlockManager parentBlock;
-    //    private final Color defaultColor;
     private final AtomicAssertion atomicAssertion;
     private JPanel mainPanel;
     private JPanel labelHolder;
-    //    private JLabel andLabel;
-//    private JLabel orLabel;
     private JCheckBox notCheckBox;
     private JPanel buttonParent;
     private JButton ruleButton;
@@ -30,15 +25,10 @@ public class AssertionBlockControlPanel {
     private JLabel iconLabel;
     private JPanel logicalConditionSelectPanel;
     private JComboBox<String> logicalControlComboBox;
-//    private JPanel andPanel;
-//    private JPanel orPanel;
 
     public AssertionBlockControlPanel(AssertionBlockManager blockManager, AtomicAssertion atomicAssertion, boolean isRootCondition) {
 
         this.atomicAssertion = atomicAssertion;
-//        RoundedLineBorder logicalOperatorRoundedBorder = new RoundedLineBorder(
-//                new JBColor(new Color(0, 0, 0, 39), new Color(0, 0, 0, 39)), 5);
-
         if (isRootCondition) {
             labelHolder.remove(iconLabel);
             buttonParent.remove(deleteButton);
@@ -138,14 +128,9 @@ public class AssertionBlockControlPanel {
             } else {
                 atomicAssertion.setAssertionType(AssertionType.ANYOF);
             }
-//            orPanel.setBackground(SELECTED_LOGICAL_OPERATOR_COLOR);
-//            andPanel.setBackground(defaultColor);
         }
 
         parentBlock.executeAssertion(atomicAssertion);
-
-//        andLabel.repaint();
-//        orLabel.repaint();
     }
 
 

@@ -1,6 +1,7 @@
 package com.insidious.plugin.client.pojo;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -18,6 +19,7 @@ import java.nio.BufferUnderflowException;
  */
 
 @DatabaseTable(tableName = "data_event")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DataEventWithSessionId implements Serializable, BytesMarshallable {
 
     @DatabaseField

@@ -1,24 +1,5 @@
 package com.insidious.plugin;
 
-import com.insidious.plugin.callbacks.ClientCallBack;
-import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugClientInterface;
-import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.client.pojo.ExceptionResponse;
-import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TracePoint;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-
 public class VideobugLocalClientTest {
 
 

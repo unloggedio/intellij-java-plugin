@@ -3,6 +3,7 @@ package com.insidious.plugin.agent;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.mocking.DeclaredMock;
 
+import java.util.Collection;
 import java.util.List;
 
 public class AgentCommandRequest {
@@ -15,7 +16,7 @@ public class AgentCommandRequest {
     private List<String> methodParameters;
     private AgentCommandRequestType requestType;
     private List<String> parameterTypes;
-    private List<DeclaredMock> declaredMocks;
+    private Collection<DeclaredMock> declaredMocks;
 
     public RequestAuthentication getRequestAuthentication() {
         return requestAuthentication;
@@ -25,11 +26,11 @@ public class AgentCommandRequest {
         this.requestAuthentication = requestAuthentication;
     }
 
-    public List<DeclaredMock> getDeclaredMocks() {
+    public Collection<DeclaredMock> getDeclaredMocks() {
         return this.declaredMocks;
     }
 
-    public void setDeclaredMocks(List<DeclaredMock> declaredMocks) {
+    public void setDeclaredMocks(Collection<DeclaredMock> declaredMocks) {
         this.declaredMocks = declaredMocks;
     }
 
