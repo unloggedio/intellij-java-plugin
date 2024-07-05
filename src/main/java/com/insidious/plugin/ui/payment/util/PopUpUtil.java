@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.payment.util;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.ui.payment.PaymentActivationScreen;
 import com.insidious.plugin.ui.payment.PaymentScreen;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
@@ -30,9 +31,12 @@ public class PopUpUtil {
             currentPopup.cancel();
         }
 
-        // Create the main panel for the test runner injector UI
-        PaymentScreen paymentScreen = new PaymentScreen(insidiousService);
-        JComponent paymentComponent = paymentScreen.getMainPanel();
+        // Create the Payment Screen panel
+//        PaymentScreen paymentScreen = new PaymentScreen(insidiousService);
+        PaymentActivationScreen paymentActivationScreen = new PaymentActivationScreen(insidiousService);
+//        JComponent paymentComponent = paymentScreen.getMainPanel();
+        JComponent paymentComponent = paymentActivationScreen.getMainPanel();
+
 
         // Set maximum size for the popup component
         Dimension max = paymentComponent.getMaximumSize();
