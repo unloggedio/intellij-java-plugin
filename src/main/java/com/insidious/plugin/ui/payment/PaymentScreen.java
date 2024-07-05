@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.ui.payment.util.CommonPaymentUtil;
 import com.insidious.plugin.ui.payment.util.PopUpUtil;
 
 import javax.swing.*;
@@ -19,6 +20,14 @@ public class PaymentScreen {
 
     public PaymentScreen(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+
+        // Add ActionListener to payButton
+        payButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                CommonPaymentUtil.routeToPayment();
+            }
+        });
 
         // Add ActionListener to the activate button
         activateButton.addActionListener(new ActionListener() {
