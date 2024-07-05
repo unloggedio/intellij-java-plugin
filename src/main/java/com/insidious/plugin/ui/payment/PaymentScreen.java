@@ -1,8 +1,11 @@
 package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.ui.payment.util.PopUpUtil;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class PaymentScreen {
     private JPanel mainPanel;
@@ -16,6 +19,14 @@ public class PaymentScreen {
 
     public PaymentScreen(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+
+        // Add ActionListener to the activate button
+        activateButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                PopUpUtil.switchToActivationScreen(insidiousService);
+            }
+        });
     }
 
     /**
