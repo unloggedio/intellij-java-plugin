@@ -53,7 +53,7 @@ import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
-import com.insidious.plugin.ui.testrunnerinjection.util.PopUpUtil;
+import com.insidious.plugin.ui.payment.util.PopUpUtil;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.util.*;
@@ -769,8 +769,12 @@ final public class InsidiousService implements
 
             @Override
             public void runReplayTests() {
+//                DumbService.getInstance(project).runWhenSmart(() -> {
+//                    PopUpUtil.showTestRunnerPopUp(InsidiousService.this);
+//                });
+
                 DumbService.getInstance(project).runWhenSmart(() -> {
-                    PopUpUtil.showTestRunnerPopUp(InsidiousService.this);
+                    PopUpUtil.showPaymentPopUp(InsidiousService.this);
                 });
             }
 
