@@ -4,6 +4,10 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.payment.util.CommonPaymentUtil;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -29,6 +33,29 @@ public class PaymentActivationScreen {
             @Override
             public void actionPerformed(ActionEvent e) {
                 CommonPaymentUtil.routeToPayment();
+            }
+        });
+
+        AbstractDocument limitedTextDocument=(AbstractDocument)keyArea.getDocument();
+
+        limitedTextDocument.setDocumentFilter(new DocumentFilter() {
+            final int maxChars = 350; // Set the maximum number of characters
+            @Override
+            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+                if (fb.getDocument().getLength() + string.length() <= maxChars) {
+                    super.insertString(fb, offset, string, attr);
+                } else {
+                    Toolkit.getDefaultToolkit().beep();
+                }
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String string, AttributeSet attrs) throws BadLocationException {
+                if (fb.getDocument().getLength() + string.length() - length <= maxChars) {
+                    super.replace(fb, offset, length, string, attrs);
+                } else {
+                    Toolkit.getDefaultToolkit().beep();
+                }
             }
         });
 

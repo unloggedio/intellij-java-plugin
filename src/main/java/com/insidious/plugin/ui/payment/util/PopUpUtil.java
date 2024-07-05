@@ -64,6 +64,10 @@ public class PopUpUtil {
         popupContentPanel = new JPanel(new BorderLayout());
         popupContentPanel.add(component, BorderLayout.CENTER);
 
+        // Calculate preferred size
+        Dimension preferredSize = component.getPreferredSize();
+        popupContentPanel.setPreferredSize(preferredSize);
+
         // Create the popup builder and configure its properties
         ComponentPopupBuilder paymentPopUp = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(popupContentPanel, null);
@@ -98,6 +102,12 @@ public class PopUpUtil {
             popupContentPanel.add(component, BorderLayout.CENTER);
             popupContentPanel.revalidate();
             popupContentPanel.repaint();
+
+            // Calculate preferred size
+            Dimension preferredSize = component.getPreferredSize();
+            popupContentPanel.setPreferredSize(preferredSize);
+            currentPopup.setSize(preferredSize);
+
             currentPopup.setCaption(title);
         }
     }
