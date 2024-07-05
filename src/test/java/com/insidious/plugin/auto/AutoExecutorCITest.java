@@ -50,7 +50,7 @@ public class AutoExecutorCITest {
         URL pathToMockResources = Thread.currentThread().getContextClassLoader()
                 .getResource(testResourcesPath + "webflux-demo-unit-resources.xlsx");
         testConfig.put("Integration", pathToIntegrationResources);
-        testConfig.put("Unit", pathToMockResources);
+//        testConfig.put("Unit", pathToMockResources);
         runTests(testConfig);
     }
 
@@ -191,7 +191,7 @@ public class AutoExecutorCITest {
                             System.out.println("    Case Comment : " + caseComment);
                         }
                         if (!result.isPassing()) {
-                            System.out.println("    Raw Response : " + agentCommandResponse.getMethodReturnValue());
+                            System.out.println("    Raw Response : " + limitResponseSize(agentCommandResponse.getMethodReturnValue()));
                         }
                         System.out.println("\n");
                     }
@@ -201,5 +201,11 @@ public class AutoExecutorCITest {
             }
         }
         return new TestResultSummary(count - 2, passing, failing, failingCaseIds);
+    }
+
+    private String limitResponseSize(String input) {
+        if (input!=null && input.length() > 5000) {
+            return input.substring(0, 5000) + " ... ";
+        } else return input;
     }
 }

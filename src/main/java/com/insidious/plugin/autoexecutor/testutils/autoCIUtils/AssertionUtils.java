@@ -127,7 +127,7 @@ public class AssertionUtils {
     private static Map<String, String> areTextsSimilar(String expected, String actual) {
         Map<String, String> diffInfo = new HashMap<>();
         boolean similar = false;
-        DifferenceResult differenceResult = DiffUtils.compareTexts(expected, actual);
+        DifferenceResult differenceResult = DiffUtils.calculateDifferencesAeCi(expected, actual);
         if (differenceResult.getDiffResultType().equals(SAME)) {
             similar = true;
             diffInfo.put("reason", "Response values are Equal");
