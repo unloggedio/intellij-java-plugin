@@ -14,7 +14,9 @@ public class PaymentScreen {
     private JPanel buttonPanel;
     private JButton payButton;
     private JButton activateButton;
-    private JLabel featureList;
+    private JLabel point1;
+    private JLabel point2;
+    private JLabel point3;
     private final InsidiousService insidiousService;
 
 
