@@ -1,10 +1,7 @@
 package com.insidious.plugin.ui.payment;
 
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.payment.util.CommonPaymentUtil;
-import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
