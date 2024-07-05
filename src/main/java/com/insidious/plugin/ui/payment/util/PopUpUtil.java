@@ -48,7 +48,7 @@ public class PopUpUtil {
             JComponent activationComponent = paymentActivationScreen.getMainPanel();
 
             // Update the popup with the new content
-            updatePopupContent(activationComponent, "Activate Your Premium!");
+            updatePopupContent(activationComponent, "Get Unlogged Premium!");
         }
     }
 
