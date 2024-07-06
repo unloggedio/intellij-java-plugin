@@ -178,6 +178,8 @@ final public class InsidiousService implements
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
     private final GetPremiumPanel getPremiumPanel = new GetPremiumPanel(this);
+    //TODO: Ask cant the same object be used everywhere?
+    private final GetPremiumPanel getPremiumPanel2 = new GetPremiumPanel(this);
     private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout(), getPremiumPanel);
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
@@ -196,6 +198,7 @@ final public class InsidiousService implements
     private boolean addedStompWindow;
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
+    private final JPanel libraryParentPanel = new JPanel(new BorderLayout());
     private ToolWindow toolWindow;
     private ServerMetadata serverMetadata = null;
     private RouterPanel routerPanel;
@@ -619,8 +622,14 @@ final public class InsidiousService implements
 
         libraryToolWindow = new LibraryComponent(project);
 
+        if (!StateManager.isPremiumUser()) {
+            libraryParentPanel.add(getPremiumPanel2.getPremiumPanel(), BorderLayout.NORTH);
+        }
+
+        libraryParentPanel.add(libraryToolWindow.getComponent(), BorderLayout.CENTER);
+
         libraryWindowContent = contentFactory.createContent(
-                libraryToolWindow.getComponent(), "Library", false);
+                libraryParentPanel, "Library", false);
         libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
         contentManager.addContent(libraryWindowContent);
@@ -835,6 +844,13 @@ final public class InsidiousService implements
 
     public void removeGetPremiumPanel() {
         containerPanel.removeGetPremiumPanel();
+        removeGetPremiumPanelFromLibraryPanel();
+    }
+
+    private void removeGetPremiumPanelFromLibraryPanel() {
+        libraryParentPanel.remove(getPremiumPanel2.getPremiumPanel());
+        libraryParentPanel.revalidate();
+        libraryParentPanel.repaint();
     }
 
     public ExecutionSessionSource getSessionSource() {
