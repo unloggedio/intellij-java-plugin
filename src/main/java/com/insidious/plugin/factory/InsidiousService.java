@@ -51,6 +51,7 @@ import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.payment.GetPremiumPanel;
+import com.insidious.plugin.ui.payment.StateManager;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;

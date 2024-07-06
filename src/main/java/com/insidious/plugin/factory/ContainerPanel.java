@@ -45,9 +45,7 @@ public class ContainerPanel extends JPanel {
     }
 
     public void removeGetPremiumPanel() {
-        if(StateManager.isPremiumUser()) return; // the panel is not there since its a premium user
         remove(premiumPanel.getPremiumPanel());
-        StateManager.setPremiumUser(true); // Update the state to premium
         revalidate();
         repaint();
     }

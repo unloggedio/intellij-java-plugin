@@ -85,7 +85,8 @@ public class PaymentActivationScreen {
         //TODO: Will be a boolean here received from authentication service
         if ("Akshat Jain".equals(enteredText)) {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
-            //TODO: Not the most elegant solution. What if somehow someclicks on this again. Need a better state management
+            if(StateManager.isPremiumUser()) return;
+            StateManager.setPremiumUser(true);
             insidiousService.removeGetPremiumPanel();
         } else {
             setStatus("Error - wrong product key \u26A0", Color.decode("#E46A76"));
