@@ -22,6 +22,7 @@ public class PaymentActivationScreen {
     private JLabel description;
     private JLabel keyLabel;
     private JLabel status;
+    private final int maxCharacters = 350;
 
     private final InsidiousService insidiousService;
 
@@ -39,10 +40,9 @@ public class PaymentActivationScreen {
         AbstractDocument limitedTextDocument=(AbstractDocument)keyArea.getDocument();
 
         limitedTextDocument.setDocumentFilter(new DocumentFilter() {
-            final int maxChars = 350; // Set the maximum number of characters
             @Override
             public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
-                if (fb.getDocument().getLength() + string.length() <= maxChars) {
+                if (fb.getDocument().getLength() + string.length() <= maxCharacters) {
                     super.insertString(fb, offset, string, attr);
                 } else {
                     Toolkit.getDefaultToolkit().beep();
@@ -51,7 +51,7 @@ public class PaymentActivationScreen {
 
             @Override
             public void replace(FilterBypass fb, int offset, int length, String string, AttributeSet attrs) throws BadLocationException {
-                if (fb.getDocument().getLength() + string.length() - length <= maxChars) {
+                if (fb.getDocument().getLength() + string.length() - length <= maxCharacters) {
                     super.replace(fb, offset, length, string, attrs);
                 } else {
                     Toolkit.getDefaultToolkit().beep();
