@@ -832,6 +832,10 @@ final public class InsidiousService implements
         return project;
     }
 
+    public void removeGetPremiumPanel() {
+        containerPanel.removeGetPremiumPanel();
+    }
+
     public ExecutionSessionSource getSessionSource() {
         return configurationState.getExecutionSessionSource();
     }

@@ -4,6 +4,7 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.ui.methodscope.RouterPanel;
 import com.insidious.plugin.ui.payment.GetPremiumPanel;
+import com.insidious.plugin.ui.payment.StateManager;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -22,6 +23,13 @@ public class ContainerPanel extends JPanel {
     public ContainerPanel(LayoutManager layoutManager, GetPremiumPanel getPremiumPanel) {
         super(layoutManager);
         this.premiumPanel = getPremiumPanel;
+        initialize();
+    }
+
+    private void initialize() {
+        if (!StateManager.isPremiumUser()) {
+            add(premiumPanel.getPremiumPanel(), BorderLayout.NORTH);
+        }
     }
 
     public void setStompComponent(StompComponent stompComponent, RouterPanel routerPanel) {
@@ -33,8 +41,15 @@ public class ContainerPanel extends JPanel {
         childPanel.add(routerPanel.getComponent(), BorderLayout.NORTH);
         childPanel.add(container, BorderLayout.CENTER);
         childPanel.add(new JSeparator(), BorderLayout.SOUTH);
-        add(premiumPanel.getPremiumPanel(), BorderLayout.NORTH);
         add(childPanel, BorderLayout.CENTER);
+    }
+
+    public void removeGetPremiumPanel() {
+        if(StateManager.isPremiumUser()) return; // the panel is not there since its a premium user
+        remove(premiumPanel.getPremiumPanel());
+        StateManager.setPremiumUser(true); // Update the state to premium
+        revalidate();
+        repaint();
     }
 
     private GridBagConstraints createGBCForFakeComponent() {
