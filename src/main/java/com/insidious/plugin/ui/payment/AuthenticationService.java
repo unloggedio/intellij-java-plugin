@@ -54,11 +54,8 @@ public class AuthenticationService {
     public boolean validateAndStoreToken(String encryptedToken) {
         try {
             String decryptedToken = decryptToken(encryptedToken, publicKeyPath);
-            System.out.println("Akj token"+decryptedToken);
             long expirationTime = Long.parseLong(decryptedToken);
-            System.out.println("Akj time"+expirationTime);
             Date expirationDate = new Date(expirationTime);
-            System.out.println("Akj date"+expirationDate);
 
             if (new Date().before(expirationDate)) {
                 tokenWriterService.writeToken(encryptedToken);
@@ -76,7 +73,6 @@ public class AuthenticationService {
     }
 
     private String decryptToken(String encryptedToken, String publicKeyPath) throws Exception {
-        System.out.println("Akj hello");
         // Read the public key file as a string
         String publicKeyPEM = new String(Files.readAllBytes(Paths.get(publicKeyPath)));
 
@@ -86,13 +82,9 @@ public class AuthenticationService {
                 .replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", ""); // Remove all whitespace
         byte[] keyBytes = Base64.getDecoder().decode(publicKeyPEM);
-        System.out.println("Akj keyBytes"+ keyBytes);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-        System.out.println("Akj spec"+ spec);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        System.out.println("Akj factory"+ keyFactory);
         PublicKey publicKey = keyFactory.generatePublic(spec);
-        System.out.println("Akj public key "+ publicKey);
 
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, publicKey);
