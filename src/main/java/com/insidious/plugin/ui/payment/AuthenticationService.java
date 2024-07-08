@@ -15,6 +15,8 @@ import java.util.Date;
 
 // TODO: handle this gracefully java.lang.IllegalArgumentException: Input byte array has wrong 4-byte ending unit
 
+//TODO: Add a check to ensure one user does not purchase again?
+
 
 public class AuthenticationService {
 
