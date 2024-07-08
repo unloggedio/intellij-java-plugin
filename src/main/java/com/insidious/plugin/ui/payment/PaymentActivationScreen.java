@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.payment.util.CommonPaymentUtil;
+import com.insidious.plugin.ui.payment.util.PopUpUtil;
 
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
@@ -37,8 +38,8 @@ public class PaymentActivationScreen {
             }
         });
 
+        //TODO: Handle longer text paste case
         AbstractDocument limitedTextDocument=(AbstractDocument)keyArea.getDocument();
-
         limitedTextDocument.setDocumentFilter(new DocumentFilter() {
             @Override
             public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
@@ -86,6 +87,7 @@ public class PaymentActivationScreen {
         if (StateManager.isPremiumUser(enteredText)) {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
             insidiousService.removeGetPremiumPanel();
+            PopUpUtil.closeCurrentPopup();
         } else {
             setStatus("Error - wrong product key \u26A0", Color.decode("#E46A76"));
         }

@@ -111,4 +111,14 @@ public class PopUpUtil {
             currentPopup.setCaption(title);
         }
     }
+
+    /**
+     * Closes the current popup if it is visible.
+     */
+    public static void closeCurrentPopup() {
+        if (currentPopup != null && currentPopup.isVisible()) {
+            currentPopup.cancel();
+            currentPopup = null; // Clear the reference after closing
+        }
+    }
 }
