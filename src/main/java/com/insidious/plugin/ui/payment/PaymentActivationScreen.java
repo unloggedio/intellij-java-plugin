@@ -83,10 +83,8 @@ public class PaymentActivationScreen {
         String enteredText = keyArea.getText().trim();
 
         //TODO: Will be a boolean here received from authentication service
-        if ("Akshat Jain".equals(enteredText)) {
+        if (StateManager.isPremiumUser(enteredText)) {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
-            if(StateManager.isPremiumUser()) return;
-            StateManager.setPremiumUser(true);
             insidiousService.removeGetPremiumPanel();
         } else {
             setStatus("Error - wrong product key \u26A0", Color.decode("#E46A76"));
