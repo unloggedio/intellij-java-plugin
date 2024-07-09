@@ -8,16 +8,19 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class GetPremiumPanel {
+public class PremiumAdBanner {
     private JPanel premiumPanel;
     private JLabel getPremium;
     private JLabel content;
+    private String source;
+
 
     private final InsidiousService insidiousService;
 
-    public GetPremiumPanel(InsidiousService insidiousService) {
+    public PremiumAdBanner(InsidiousService insidiousService, String source) {
 
         this.insidiousService = insidiousService;
+        this.source = source;
 
         getPremium.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         getPremium.addMouseListener(new MouseAdapter() {

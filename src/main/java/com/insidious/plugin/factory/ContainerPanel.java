@@ -3,8 +3,8 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.ui.methodscope.RouterPanel;
-import com.insidious.plugin.ui.payment.GetPremiumPanel;
-import com.insidious.plugin.ui.payment.StateManager;
+import com.insidious.plugin.ui.payment.PremiumAdBanner;
+import com.insidious.plugin.ui.payment.PremiumStateManager;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -15,21 +15,22 @@ import java.awt.*;
 
 public class ContainerPanel extends JPanel {
     private StompComponent stompComponent;
-    private GetPremiumPanel premiumPanel;
+    private PremiumAdBanner premiumPanel;
     private RouterPanel routerPanel;
     private ComponentProvider currentContent;
     private JPanel container;
 
-    public ContainerPanel(LayoutManager layoutManager, GetPremiumPanel getPremiumPanel) {
+    public ContainerPanel(LayoutManager layoutManager, PremiumAdBanner premiumAdBanner) {
         super(layoutManager);
-        this.premiumPanel = getPremiumPanel;
-        initialize();
+        this.premiumPanel = premiumAdBanner;
+        initializePremiumAdBanner();
     }
 
-    private void initialize() {
-        if (!StateManager.isPremiumUser()) {
+    private void initializePremiumAdBanner() {
+        if (!PremiumStateManager.isPremiumUser()) {
             add(premiumPanel.getPremiumPanel(), BorderLayout.NORTH);
         }
+        revalidate();
     }
 
     public void setStompComponent(StompComponent stompComponent, RouterPanel routerPanel) {
@@ -47,7 +48,6 @@ public class ContainerPanel extends JPanel {
     public void removeGetPremiumPanel() {
         remove(premiumPanel.getPremiumPanel());
         revalidate();
-        repaint();
     }
 
     private GridBagConstraints createGBCForFakeComponent() {
@@ -79,6 +79,7 @@ public class ContainerPanel extends JPanel {
     public synchronized void setViewport(ComponentProvider content) {
         ApplicationManager.getApplication().invokeLater(() -> {
             container.removeAll();
+            initializePremiumAdBanner();
             if (content == null) {
                 routerPanel.setMiniMode(false);
             } else {

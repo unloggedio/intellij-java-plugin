@@ -84,7 +84,7 @@ public class PaymentActivationScreen {
         String enteredText = keyArea.getText().trim();
 
         //TODO: Will be a boolean here received from authentication service
-        if (StateManager.isPremiumUser(enteredText)) {
+        if (PremiumStateManager.isPremiumUser(enteredText)) {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
             insidiousService.removeGetPremiumPanel();
             PopUpUtil.closeCurrentPopup();

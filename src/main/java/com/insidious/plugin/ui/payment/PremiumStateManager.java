@@ -2,7 +2,7 @@ package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 
-public class StateManager {
+public class PremiumStateManager {
 
     private static final AuthenticationService authenticationService = new AuthenticationService(new InsidiousConfigurationState());
 

@@ -50,8 +50,8 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.ui.payment.GetPremiumPanel;
-import com.insidious.plugin.ui.payment.StateManager;
+import com.insidious.plugin.ui.payment.PremiumAdBanner;
+import com.insidious.plugin.ui.payment.PremiumStateManager;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
@@ -177,10 +177,10 @@ final public class InsidiousService implements
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
-    private final GetPremiumPanel getPremiumPanel = new GetPremiumPanel(this);
+    private final PremiumAdBanner liveViewPremiumBanner = new PremiumAdBanner(this, "live");
     //TODO: Ask cant the same object be used everywhere?
-    private final GetPremiumPanel getPremiumPanel2 = new GetPremiumPanel(this);
-    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout(), getPremiumPanel);
+    private final PremiumAdBanner libraryPremiumBanner = new PremiumAdBanner(this, "library");
+    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout(), liveViewPremiumBanner);
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -622,8 +622,8 @@ final public class InsidiousService implements
 
         libraryToolWindow = new LibraryComponent(project);
 
-        if (!StateManager.isPremiumUser()) {
-            libraryParentPanel.add(getPremiumPanel2.getPremiumPanel(), BorderLayout.NORTH);
+        if (!PremiumStateManager.isPremiumUser()) {
+            libraryParentPanel.add(libraryPremiumBanner.getPremiumPanel(), BorderLayout.NORTH);
         }
 
         libraryParentPanel.add(libraryToolWindow.getComponent(), BorderLayout.CENTER);
@@ -848,7 +848,7 @@ final public class InsidiousService implements
     }
 
     private void removeGetPremiumPanelFromLibraryPanel() {
-        libraryParentPanel.remove(getPremiumPanel2.getPremiumPanel());
+        libraryParentPanel.remove(libraryPremiumBanner.getPremiumPanel());
         libraryParentPanel.revalidate();
         libraryParentPanel.repaint();
     }
