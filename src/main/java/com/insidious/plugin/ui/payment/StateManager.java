@@ -1,13 +1,10 @@
 package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousConfigurationState;
-import java.io.File;
 
 public class StateManager {
 
-    private static final String PUBLIC_KEY_PATH = System.getProperty("user.home") + File.separator + "Downloads" + File.separator + "public.pem";
-//    private static final String TOKEN_FILE_PATH = System.getProperty("user.home") + File.separator + "Downloads" + File.separator + "premiumFlag.txt";
-    private static final AuthenticationService authenticationService = new AuthenticationService(PUBLIC_KEY_PATH,new InsidiousConfigurationState());
+    private static final AuthenticationService authenticationService = new AuthenticationService(new InsidiousConfigurationState());
 
     public static boolean isPremiumUser() {
         return authenticationService.isTokenValid();

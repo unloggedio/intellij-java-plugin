@@ -3,8 +3,6 @@ package com.insidious.plugin.ui.payment;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 
 import javax.crypto.Cipher;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -15,17 +13,15 @@ import java.util.Date;
 
 // TODO: handle this gracefully java.lang.IllegalArgumentException: Input byte array has wrong 4-byte ending unit
 
-//TODO: Add a check to ensure one user does not purchase again?
+// TODO: Add a check to ensure one user does not purchase again?
 
 public class AuthenticationService {
 
-    private final String publicKeyPath;
-//    private final TokenWriterService tokenWriterService;
+    private static final String PUBLIC_KEY_PEM =
+            "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvphmzcmTiYx9tKCBZ3rfs7POiS8BFyYPBOPa7R3q2LwZplRxNF7OCBw7ogQlK7608al+JsWQFVBQ6g1eZm+8i2qCKFLYjhItNd33JDonXzNolryx3HJRbcbGxc2mJvu895nXMMW+m0IVLmnflV+7g3ATXjbSe2KTxZu0uzQjD0xlRyqnAgVkr/VGhKemn5e1MXhG6C3f3pQEspsFB5RV7/H6i0WU/4R3t2/NERaj8yjHR/7Bbv88EY0i+7PaNPaC0jf+pqwD6jWP+8X1inw0mSp3pKtpiNp6KLwlGacEar6tyjfU5+HZZSpsR2sNvmgYzeSlhS3ek7VsZRA2pAYo/wIDAQAB-----END PUBLIC KEY-----";
     private final InsidiousConfigurationState configurationState;
 
-    public AuthenticationService(String publicKeyPath,InsidiousConfigurationState configurationState) {
-        this.publicKeyPath = publicKeyPath;
-//        this.tokenWriterService = tokenWriterService;
+    public AuthenticationService(InsidiousConfigurationState configurationState) {
         this.configurationState = configurationState;
     }
 
@@ -38,7 +34,7 @@ public class AuthenticationService {
                 return false; // No token stored
             }
 
-            String decryptedToken = decryptToken(encryptedToken, publicKeyPath);
+            String decryptedToken = decryptToken(encryptedToken);
             long expirationTime = Long.parseLong(decryptedToken);
             Date expirationDate = new Date(expirationTime);
 
@@ -59,7 +55,7 @@ public class AuthenticationService {
     public boolean validateAndStoreToken(String encryptedToken) {
         try {
             System.out.println("Token2 " + encryptedToken);
-            String decryptedToken = decryptToken(encryptedToken, publicKeyPath);
+            String decryptedToken = decryptToken(encryptedToken);
             long expirationTime = Long.parseLong(decryptedToken);
             Date expirationDate = new Date(expirationTime);
 
@@ -78,12 +74,9 @@ public class AuthenticationService {
         }
     }
 
-    private String decryptToken(String encryptedToken, String publicKeyPath) throws Exception {
-        // Read the public key file as a string
-        String publicKeyPEM = new String(Files.readAllBytes(Paths.get(publicKeyPath)));
-
+    private String decryptToken(String encryptedToken) throws Exception {
         // Remove the first and last lines
-        publicKeyPEM = publicKeyPEM
+        String publicKeyPEM = PUBLIC_KEY_PEM
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", ""); // Remove all whitespace
