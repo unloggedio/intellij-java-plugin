@@ -13,8 +13,6 @@ public class PremiumAdBanner {
     private JLabel getPremium;
     private JLabel content;
     private String source;
-
-
     private final InsidiousService insidiousService;
 
     public PremiumAdBanner(InsidiousService insidiousService, String source) {
@@ -33,6 +31,7 @@ public class PremiumAdBanner {
 
     /**
      * Returns the main panel of the UI.
+     *
      * @return the main JPanel
      */
     public JPanel getPremiumPanel() {

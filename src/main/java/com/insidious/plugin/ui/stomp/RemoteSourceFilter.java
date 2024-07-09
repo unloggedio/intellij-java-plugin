@@ -9,6 +9,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.upload.SourceFilter;
+import com.insidious.plugin.util.BrowserRouteUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
@@ -70,21 +71,10 @@ public class RemoteSourceFilter {
     private HashMap<ButtonModel, ExecutionSession> modelToSessionMap;
 
     public void routeToServerReadme() {
-        String link = "https://read.unlogged.io/server/";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
-        } else {
-            //no browser
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToServerReadme", null);
+        BrowserRouteUtils.routeInBrowser("https://read.unlogged.io/server/",
+                "Learn how to setup the unlogged server <a href='https://read.unlogged.io/server/'>here</a>",
+                "routeToServerReadme");
     }
-
-
 
     public RemoteSourceFilter(InsidiousService insidiousService) {
         this.executionSessionSource = new ExecutionSessionSource(insidiousService.getSessionSource());

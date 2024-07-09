@@ -56,8 +56,8 @@ public class PopUpUtil {
      * Creates and shows a popup with the specified component and title.
      *
      * @param insidiousService the service providing context for the plugin
-     * @param component the component to show in the popup
-     * @param title the title of the popup
+     * @param component        the component to show in the popup
+     * @param title            the title of the popup
      */
     private static void createAndShowPopup(InsidiousService insidiousService, JComponent component, String title) {
         // Initialize the popup content panel
@@ -94,7 +94,7 @@ public class PopUpUtil {
      * Updates the content of the current popup with the specified component and title.
      *
      * @param component the new component to show in the popup
-     * @param title the new title of the popup
+     * @param title     the new title of the popup
      */
     private static void updatePopupContent(JComponent component, String title) {
         if (currentPopup != null && currentPopup.isVisible()) {

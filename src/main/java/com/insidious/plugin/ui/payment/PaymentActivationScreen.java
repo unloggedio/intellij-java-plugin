@@ -1,8 +1,8 @@
 package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.ui.payment.util.CommonPaymentUtil;
 import com.insidious.plugin.ui.payment.util.PopUpUtil;
+import com.insidious.plugin.util.BrowserRouteUtils;
 
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
@@ -34,12 +34,14 @@ public class PaymentActivationScreen {
         payButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                CommonPaymentUtil.routeToPayment();
+                BrowserRouteUtils.routeInBrowser("https://read.unlogged.io/cirunner/",
+                        "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from CLI/Maven/Gradle",
+                        "ROUTE_TO_PAY_PREMIUM");
             }
         });
 
         //TODO: Handle longer text paste case
-        AbstractDocument limitedTextDocument=(AbstractDocument)keyArea.getDocument();
+        AbstractDocument limitedTextDocument = (AbstractDocument) keyArea.getDocument();
         limitedTextDocument.setDocumentFilter(new DocumentFilter() {
             @Override
             public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
@@ -71,6 +73,7 @@ public class PaymentActivationScreen {
 
     /**
      * Returns the main panel of the UI.
+     *
      * @return the main JPanel
      */
     public JPanel getMainPanel() {
@@ -95,7 +98,8 @@ public class PaymentActivationScreen {
 
     /**
      * Sets the status text and color.
-     * @param text the status text
+     *
+     * @param text  the status text
      * @param color the color for the status text
      */
     private void setStatus(String text, Color color) {

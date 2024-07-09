@@ -10,7 +10,7 @@ public class PremiumStateManager {
         return authenticationService.isTokenValid();
     }
 
-    public static  boolean isPremiumUser(String encryptedToken) {
+    public static boolean isPremiumUser(String encryptedToken) {
         return authenticationService.validateAndStoreToken(encryptedToken);
     }
 }

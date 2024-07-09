@@ -7,6 +7,7 @@ import com.insidious.plugin.ui.testrunnerinjection.components.CheckComboBox;
 import com.insidious.plugin.ui.testrunnerinjection.util.CommonUtil;
 import com.insidious.plugin.ui.testrunnerinjection.util.MultiModuleManager;
 import com.insidious.plugin.ui.testrunnerinjection.util.RunnerWriter;
+import com.insidious.plugin.util.BrowserRouteUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.ui.JBColor;
@@ -101,6 +102,7 @@ public class TestRunnerInjector {
 
     /**
      * Returns the main panel of the UI.
+     *
      * @return the main JPanel
      */
     public JPanel getMainPanel() {
@@ -109,12 +111,13 @@ public class TestRunnerInjector {
 
     /**
      * Copies the code to the clipboard based on the specified CopyType.
+     *
      * @param type the type of code to copy (RUNNER, MAVEN, or GRADLE)
      */
     private void copyCode(CopyType type) {
         if (type.equals(CopyType.RUNNER)) {
             insidiousService.copyToClipboard(testRunnerText.getText());
-        } else if(type.equals(CopyType.MAVEN)){
+        } else if (type.equals(CopyType.MAVEN)) {
             insidiousService.copyToClipboard(mvnTestTextArea.getText());
         } else {
             insidiousService.copyToClipboard(gradleTestTextArea.getText());
@@ -128,21 +131,9 @@ public class TestRunnerInjector {
      * If Desktop is not supported, shows a notification with the link.
      */
     private void routeToCiDocumentation() {
-        String link = "https://read.unlogged.io/cirunner/";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-                //Handle this
-            }
-        } else {
-            InsidiousNotification.notifyMessage(
-                    "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
-                            "CLI/Maven/Gradle", NotificationType.INFORMATION);
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToDocumentation", null);
+        BrowserRouteUtils.routeInBrowser("https://read.unlogged.io/cirunner/",
+                "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from CLI/Maven/Gradle",
+                "routeToDocumentation");
     }
 
     /**
@@ -177,7 +168,7 @@ public class TestRunnerInjector {
      */
     private void initializeModuleDropDown() {
         CheckComboBox checkComboBox = new CheckComboBox(multiModuleManager.populateCheckComboBoxWithModules());
-        checkComboBox.setPreferredSize(new Dimension(-1,40));
+        checkComboBox.setPreferredSize(new Dimension(-1, 40));
 
         // Remove the placeholder JComboBox and replace it with custom CheckComboBox
         dropDownPanel.remove(moduleSelector);

@@ -1,8 +1,8 @@
 package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.ui.payment.util.CommonPaymentUtil;
 import com.insidious.plugin.ui.payment.util.PopUpUtil;
+import com.insidious.plugin.util.BrowserRouteUtils;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -27,7 +27,9 @@ public class PaymentScreen {
         payButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                CommonPaymentUtil.routeToPayment();
+                BrowserRouteUtils.routeInBrowser("https://read.unlogged.io/cirunner/",
+                        "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from CLI/Maven/Gradle",
+                        "ROUTE_TO_PAY_PREMIUM");
             }
         });
 
@@ -42,6 +44,7 @@ public class PaymentScreen {
 
     /**
      * Returns the main panel of the UI.
+     *
      * @return the main JPanel
      */
     public JPanel getMainPanel() {
