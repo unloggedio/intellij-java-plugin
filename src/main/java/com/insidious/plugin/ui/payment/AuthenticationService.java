@@ -8,6 +8,7 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
+import org.json.JSONObject;
 
 // TODO: handle this gracefully javax.crypto.BadPaddingException: Decryption error
 
@@ -35,7 +36,8 @@ public class AuthenticationService {
             }
 
             String decryptedToken = decryptToken(encryptedToken);
-            long expirationTime = Long.parseLong(decryptedToken);
+            JSONObject tokenJson = new JSONObject(decryptedToken);
+            long expirationTime = tokenJson.getLong("expiresAt");
             Date expirationDate = new Date(expirationTime);
 
             boolean isValid = new Date().before(expirationDate);
@@ -47,16 +49,16 @@ public class AuthenticationService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            configurationState.setPremiumToken(null); // Remove token if someone reenters the wrong token
+            configurationState.setPremiumToken(null); // Remove token if decryption fails
             return false;
         }
     }
 
     public boolean validateAndStoreToken(String encryptedToken) {
         try {
-            System.out.println("Token2 " + encryptedToken);
             String decryptedToken = decryptToken(encryptedToken);
-            long expirationTime = Long.parseLong(decryptedToken);
+            JSONObject tokenJson = new JSONObject(decryptedToken);
+            long expirationTime = tokenJson.getLong("expiresAt");
             Date expirationDate = new Date(expirationTime);
 
             if (new Date().before(expirationDate)) {
@@ -69,7 +71,7 @@ public class AuthenticationService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            configurationState.setPremiumToken(null); // Remove token if someone reenters the wrong token
+            configurationState.setPremiumToken(null); // Remove token if decryption fails
             return false;
         }
     }
