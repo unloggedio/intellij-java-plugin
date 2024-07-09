@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.payment;
 
-import com.insidious.plugin.ui.payment.util.TokenWriterService;
+import com.insidious.plugin.factory.InsidiousConfigurationState;
 
 import javax.crypto.Cipher;
 import java.nio.file.Files;
@@ -17,21 +17,24 @@ import java.util.Date;
 
 //TODO: Add a check to ensure one user does not purchase again?
 
-
 public class AuthenticationService {
 
     private final String publicKeyPath;
-    private final TokenWriterService tokenWriterService;
+//    private final TokenWriterService tokenWriterService;
+    private final InsidiousConfigurationState configurationState;
 
-    public AuthenticationService(String publicKeyPath, TokenWriterService tokenWriterService) {
+    public AuthenticationService(String publicKeyPath,InsidiousConfigurationState configurationState) {
         this.publicKeyPath = publicKeyPath;
-        this.tokenWriterService = tokenWriterService;
+//        this.tokenWriterService = tokenWriterService;
+        this.configurationState = configurationState;
     }
 
     public boolean isTokenValid() {
         try {
-            String encryptedToken = tokenWriterService.readToken();
-            if (encryptedToken.isEmpty()) {
+            String encryptedToken = configurationState.getPremiumToken();
+            System.out.println("Token1 " + encryptedToken);
+            System.out.println("Insidious service  " + configurationState.toString());
+            if (encryptedToken == null || encryptedToken.isEmpty()) {
                 return false; // No token stored
             }
 
@@ -41,35 +44,36 @@ public class AuthenticationService {
 
             boolean isValid = new Date().before(expirationDate);
             if (!isValid) {
-                tokenWriterService.removeToken(); // Remove token if expired
+                configurationState.setPremiumToken(null); // Remove token if expired
             }
 
             return isValid;
 
         } catch (Exception e) {
             e.printStackTrace();
-            tokenWriterService.removeToken(); // Remove token if someone reenters the wrong token (ideally wont be able to input wrong token
+            configurationState.setPremiumToken(null); // Remove token if someone reenters the wrong token
             return false;
         }
     }
 
     public boolean validateAndStoreToken(String encryptedToken) {
         try {
+            System.out.println("Token2 " + encryptedToken);
             String decryptedToken = decryptToken(encryptedToken, publicKeyPath);
             long expirationTime = Long.parseLong(decryptedToken);
             Date expirationDate = new Date(expirationTime);
 
             if (new Date().before(expirationDate)) {
-                tokenWriterService.writeToken(encryptedToken);
+                configurationState.setPremiumToken(encryptedToken);
                 return true;
             } else {
-                tokenWriterService.removeToken(); // Remove token if expired
+                configurationState.setPremiumToken(null); // Remove token if expired
                 return false; // Token expired
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            tokenWriterService.removeToken(); // Remove token if someone reenters the wrong token (ideally wont be able to input wrong token
+            configurationState.setPremiumToken(null); // Remove token if someone reenters the wrong token
             return false;
         }
     }

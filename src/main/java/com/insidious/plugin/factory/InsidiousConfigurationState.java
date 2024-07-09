@@ -44,8 +44,18 @@ public final class InsidiousConfigurationState
     @OptionTag(converter = ExecutionSessionConverter.class)
     private ExecutionSession executionSession;
 
+    private String premiumToken;
+
 
     public InsidiousConfigurationState() {
+    }
+
+    public String getPremiumToken() {
+        return premiumToken;
+    }
+
+    public void setPremiumToken(String token) {
+        this.premiumToken = token;
     }
 
     public LibraryFilterState getLibraryFilterModel() {
