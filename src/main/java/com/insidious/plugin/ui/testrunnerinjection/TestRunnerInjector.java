@@ -2,14 +2,12 @@ package com.insidious.plugin.ui.testrunnerinjection;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.testrunnerinjection.components.CheckComboBox;
-import com.insidious.plugin.ui.testrunnerinjection.util.CommonUtil;
+import com.insidious.plugin.ui.testrunnerinjection.util.RunnerFileContentUtils;
 import com.insidious.plugin.ui.testrunnerinjection.util.MultiModuleManager;
 import com.insidious.plugin.ui.testrunnerinjection.util.RunnerWriter;
 import com.insidious.plugin.util.BrowserRouteUtils;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
@@ -72,7 +70,7 @@ public class TestRunnerInjector {
 
         addBordersToTextBoxes();
 
-        testRunnerText.setText(CommonUtil.generateRunnerFileContent());
+        testRunnerText.setText(RunnerFileContentUtils.generateRunnerFileContent());
         initializeModuleDropDown();
         addInjectButtonActionListener();
 

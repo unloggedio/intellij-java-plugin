@@ -73,7 +73,7 @@ public class RunnerWriter {
      * @param runnerFile the file to write the contents into
      */
     private void writeContentsInFile(File runnerFile) {
-        String runnerFileContent = CommonUtil.generateRunnerFileContent() + "\n";
+        String runnerFileContent = RunnerFileContentUtils.generateRunnerFileContent() + "\n";
         try (FileOutputStream fileOutputStream = new FileOutputStream(runnerFile)) {
             fileOutputStream.write(runnerFileContent.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
