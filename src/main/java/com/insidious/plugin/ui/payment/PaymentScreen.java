@@ -27,8 +27,8 @@ public class PaymentScreen {
         payButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                BrowserRouteUtils.routeInBrowser("https://read.unlogged.io/cirunner/",
-                        "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from CLI/Maven/Gradle",
+                BrowserRouteUtils.routeInBrowser("https://buy.stripe.com/fZeg1jc4I5UV1Gw146",
+                        "<a href='https://buy.stripe.com/fZeg1jc4I5UV1Gw146'>Follow Payment Link</a> to make payment for premium",
                         "ROUTE_TO_PAY_PREMIUM");
             }
         });

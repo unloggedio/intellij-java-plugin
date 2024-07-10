@@ -14,8 +14,6 @@ import org.json.JSONObject;
 
 // TODO: handle this gracefully java.lang.IllegalArgumentException: Input byte array has wrong 4-byte ending unit
 
-// TODO: Add a check to ensure one user does not purchase again?
-
 public class AuthenticationService {
 
     private static final String PUBLIC_KEY_PEM =
@@ -30,7 +28,6 @@ public class AuthenticationService {
         try {
             String encryptedToken = configurationState.getPremiumToken();
             System.out.println("Token1 " + encryptedToken);
-            System.out.println("Insidious service  " + configurationState.toString());
             if (encryptedToken == null || encryptedToken.isEmpty()) {
                 return false; // No token stored
             }
