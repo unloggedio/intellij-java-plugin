@@ -178,7 +178,6 @@ final public class InsidiousService implements
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
     private final PremiumAdBanner liveViewPremiumBanner = new PremiumAdBanner(this, "live");
-    //TODO: Ask cant the same object be used everywhere?
     private final PremiumAdBanner libraryPremiumBanner = new PremiumAdBanner(this, "library");
     private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout(), liveViewPremiumBanner);
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();

@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.client.pojo.PremiumTokenData;
 import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
@@ -44,18 +45,19 @@ public final class InsidiousConfigurationState
     @OptionTag(converter = ExecutionSessionConverter.class)
     private ExecutionSession executionSession;
 
-    private String premiumToken;
+    @OptionTag(converter = PremiumTokenDataConverter.class)
+    private PremiumTokenData premiumTokenData;
 
 
     public InsidiousConfigurationState() {
     }
 
-    public String getPremiumToken() {
-        return premiumToken;
+    public PremiumTokenData getPremiumTokenData() {
+        return premiumTokenData;
     }
 
-    public void setPremiumToken(String token) {
-        this.premiumToken = token;
+    public void setPremiumTokenData(PremiumTokenData premiumTokenData) {
+        this.premiumTokenData = premiumTokenData;
     }
 
     public LibraryFilterState getLibraryFilterModel() {
