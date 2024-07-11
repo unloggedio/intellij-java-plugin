@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.util.List;
 
 public class AutoExecutorCITest {
 
@@ -50,7 +51,7 @@ public class AutoExecutorCITest {
         URL pathToMockResources = Thread.currentThread().getContextClassLoader()
                 .getResource(testResourcesPath + "webflux-demo-unit-resources.xlsx");
         testConfig.put("Integration", pathToIntegrationResources);
-//        testConfig.put("Unit", pathToMockResources);
+        testConfig.put("Unit", pathToMockResources);
         runTests(testConfig);
     }
 
