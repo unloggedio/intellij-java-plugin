@@ -32,11 +32,8 @@ public class AuthenticationService {
             if (tokenData == null) {
                 return false; // No token stored
             }
-            String decryptedToken = decryptToken(tokenData.getToken());
-            JSONObject tokenJson = new JSONObject(decryptedToken);
-            long expirationTime = tokenJson.getLong("expiresAt");
-            Date expirationDate = new Date(expirationTime);
 
+            Date expirationDate = new Date(tokenData.getExpiresAt());
             boolean isValid = new Date().before(expirationDate);
             if (!isValid) {
                 configurationState.setPremiumTokenData(null); // Remove token if expired
