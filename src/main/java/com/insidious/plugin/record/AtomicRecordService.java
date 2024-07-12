@@ -339,6 +339,14 @@ public final class AtomicRecordService {
         if (!parentDir.exists()) {
             parentDir.mkdirs();
         }
+
+        // modify fileName
+        String newFileName = file.getName()
+                                .replace("<", "_")
+                                .replace(">", "_");
+        newFileName = file.getParentFile().getPath() + separator + newFileName;
+        file = new File(newFileName);
+
         logger.info("[ATRS] writing to file : " + file.getName());
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicRecord);
