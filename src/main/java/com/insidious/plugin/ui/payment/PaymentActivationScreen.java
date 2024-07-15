@@ -5,10 +5,6 @@ import com.insidious.plugin.ui.payment.util.PopUpUtil;
 import com.insidious.plugin.util.BrowserRouteUtils;
 
 import javax.swing.*;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -23,7 +19,7 @@ public class PaymentActivationScreen {
     private JLabel description;
     private JLabel keyLabel;
     private JLabel status;
-    private final int maxCharacters = 350;
+    private JScrollPane keyAreaScroll;
 
     private final InsidiousService insidiousService;
 
@@ -40,27 +36,7 @@ public class PaymentActivationScreen {
             }
         });
 
-        //TODO: Handle longer text paste case
-        AbstractDocument limitedTextDocument = (AbstractDocument) keyArea.getDocument();
-        limitedTextDocument.setDocumentFilter(new DocumentFilter() {
-            @Override
-            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
-                if (fb.getDocument().getLength() + string.length() <= maxCharacters) {
-                    super.insertString(fb, offset, string, attr);
-                } else {
-                    Toolkit.getDefaultToolkit().beep();
-                }
-            }
-
-            @Override
-            public void replace(FilterBypass fb, int offset, int length, String string, AttributeSet attrs) throws BadLocationException {
-                if (fb.getDocument().getLength() + string.length() - length <= maxCharacters) {
-                    super.replace(fb, offset, length, string, attrs);
-                } else {
-                    Toolkit.getDefaultToolkit().beep();
-                }
-            }
-        });
+        keyArea.setLineWrap(true);
 
         // Add ActionListener to activateButton
         activateButton.addActionListener(new ActionListener() {
