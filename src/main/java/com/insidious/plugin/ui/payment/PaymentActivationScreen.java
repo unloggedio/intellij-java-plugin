@@ -84,8 +84,7 @@ public class PaymentActivationScreen {
      * Updates the status label based on the text entered in keyArea.
      */
     private void updateStatus() {
-        String enteredText = keyArea.getText().trim();
-
+        String enteredText = keyArea.getText().trim().replaceAll("\\s", "");
         //TODO: Will be a boolean here received from authentication service
         if (PremiumStateManager.isPremiumUser(enteredText)) {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
