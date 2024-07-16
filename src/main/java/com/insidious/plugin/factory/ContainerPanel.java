@@ -15,7 +15,7 @@ import java.awt.*;
 
 public class ContainerPanel extends JPanel {
     private StompComponent stompComponent;
-    private PremiumAdBanner premiumPanel;
+    private PremiumAdBanner adBanner;
     private RouterPanel routerPanel;
     private ComponentProvider currentContent;
     private JPanel container;
@@ -23,15 +23,18 @@ public class ContainerPanel extends JPanel {
 
     public ContainerPanel(LayoutManager layoutManager, PremiumAdBanner premiumAdBanner, AuthenticationService authenticationService) {
         super(layoutManager);
-        this.premiumPanel = premiumAdBanner;
+        this.adBanner = premiumAdBanner;
         this.authenticationService = authenticationService;
         initializePremiumAdBanner();
 
     }
 
     private void initializePremiumAdBanner() {
+        add(adBanner.getMainPanel(), BorderLayout.NORTH);
         if (!authenticationService.isTokenValid()) {
-            add(premiumPanel.getPremiumPanel(), BorderLayout.NORTH);
+            adBanner.setPremiumUserFlag(false);
+        } else {
+            adBanner.setPremiumUserFlag(true);
         }
         revalidate();
     }
@@ -48,8 +51,8 @@ public class ContainerPanel extends JPanel {
         add(childPanel, BorderLayout.CENTER);
     }
 
-    public void removeGetPremiumPanel() {
-        remove(premiumPanel.getPremiumPanel());
+    public void makeAdBannerPremium() {
+        adBanner.setPremiumUserFlag(true);
         revalidate();
     }
 

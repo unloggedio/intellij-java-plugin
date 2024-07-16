@@ -624,11 +624,11 @@ final public class InsidiousService implements
 
         libraryToolWindow = new LibraryComponent(project);
 
-        libraryParentPanel.add(libraryPremiumBanner.getPremiumPanel(), BorderLayout.NORTH);
+        libraryParentPanel.add(libraryPremiumBanner.getMainPanel(), BorderLayout.NORTH);
         if (!authenticationService.isTokenValid()) {
-            libraryPremiumBanner.getPremiumPanel().setVisible(true);
+            libraryPremiumBanner.setPremiumUserFlag(false);
         } else {
-            libraryPremiumBanner.getPremiumPanel().setVisible(false);
+            libraryPremiumBanner.setPremiumUserFlag(true);
         }
 
         libraryParentPanel.add(libraryToolWindow.getComponent(), BorderLayout.CENTER);
@@ -847,14 +847,14 @@ final public class InsidiousService implements
         return project;
     }
 
-    public void removeGetPremiumPanel() {
-        containerPanel.removeGetPremiumPanel();
-        removeGetPremiumPanelFromLibraryPanel();
+    public void makeBannerPremium() {
+        containerPanel.makeAdBannerPremium();
+        makeAdBannerPremiumLibraryPanel();
     }
 
-    private void removeGetPremiumPanelFromLibraryPanel() {
+    private void makeAdBannerPremiumLibraryPanel() {
 //        libraryParentPanel.remove(libraryPremiumBanner.getPremiumPanel());
-        libraryPremiumBanner.getPremiumPanel().setVisible(false);
+        libraryPremiumBanner.setPremiumUserFlag(true);
         libraryParentPanel.revalidate();
         libraryParentPanel.repaint();
     }

@@ -67,7 +67,7 @@ public class PaymentActivationScreen {
         //TODO: Will be a boolean here received from authentication service
         if (authenticationService.validateAndStoreToken(enteredText)) {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
-            insidiousService.removeGetPremiumPanel();
+            insidiousService.makeBannerPremium();
             PopUpUtil.closeCurrentPopup();
         } else {
             setStatus("Error - wrong product key \u26A0", Color.decode("#E46A76"));
