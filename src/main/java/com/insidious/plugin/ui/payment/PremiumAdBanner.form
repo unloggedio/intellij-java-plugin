@@ -58,7 +58,7 @@
                 </constraints>
                 <properties>
                   <foreground color="-105256"/>
-                  <text value="&lt;html&gt;&lt;b&gt;Premium User!&lt;/b&gt;&lt;/html&gt;"/>
+                  <text value="&lt;html&gt;&lt;b&gt;Premium User&lt;/b&gt;&lt;/html&gt;"/>
                 </properties>
               </component>
               <component id="466a3" class="javax.swing.JLabel" binding="premiumContent">
