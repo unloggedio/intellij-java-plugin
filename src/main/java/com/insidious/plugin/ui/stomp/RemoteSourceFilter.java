@@ -103,10 +103,12 @@ public class RemoteSourceFilter {
             serverListScroll.setVisible(true);
             showLoading();
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                enableExecutionSessionSource(false);
                 List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     createRemoteSessionList(list);
                 });
+                enableExecutionSessionSource(true);
             });
         }
         mainPanel.revalidate();
@@ -152,8 +154,10 @@ public class RemoteSourceFilter {
             independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
 
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                enableExecutionSessionSource(false);
                 List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
                 createRemoteSessionList(list);
+                enableExecutionSessionSource(true);
             });
 
         });
@@ -265,6 +269,11 @@ public class RemoteSourceFilter {
         comp.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         serverListPanel.removeAll();
         serverListPanel.add(comp);
+    }
+
+    private void enableExecutionSessionSource(boolean enableFlag) {
+        localhostRadio.setEnabled(enableFlag);
+        remoteRadio.setEnabled(enableFlag);
     }
 
     private List<ExecutionSession> sessionDiscoveryBackground(UnloggedClientInterface clientInterface) {
