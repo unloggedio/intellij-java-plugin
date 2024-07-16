@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.payment.util.PopUpUtil;
 import com.insidious.plugin.util.BrowserRouteUtils;
 
@@ -32,7 +33,7 @@ public class PaymentScreen {
             public void actionPerformed(ActionEvent e) {
                 BrowserRouteUtils.routeInBrowser("https://buy.stripe.com/fZeg1jc4I5UV1Gw146",
                         "<a href='https://buy.stripe.com/fZeg1jc4I5UV1Gw146'>Follow Payment Link</a> to make payment for premium",
-                        "ROUTE_TO_PAY_PREMIUM");
+                        "ROUTE_TO_PAY_PREMIUM_S1");
             }
         });
 
@@ -40,6 +41,8 @@ public class PaymentScreen {
         activateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                UsageInsightTracker.getInstance().RecordEvent(
+                        "ROUTE_TO_ACTIVATE_KEY_SCREEN", null);
                 PopUpUtil.switchToActivationScreen(insidiousService);
             }
         });

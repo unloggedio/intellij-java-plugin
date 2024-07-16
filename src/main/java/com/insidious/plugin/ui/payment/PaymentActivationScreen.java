@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.payment;
 
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.payment.util.PopUpUtil;
 import com.insidious.plugin.util.BrowserRouteUtils;
 
@@ -35,7 +36,7 @@ public class PaymentActivationScreen {
             public void actionPerformed(ActionEvent e) {
                 BrowserRouteUtils.routeInBrowser("https://buy.stripe.com/fZeg1jc4I5UV1Gw146",
                         "<a href='https://buy.stripe.com/fZeg1jc4I5UV1Gw146'>Follow Payment Link</a> to make payment for premium",
-                        "ROUTE_TO_PAY_PREMIUM");
+                        "ROUTE_TO_PAY_PREMIUM_S2");
             }
         });
 
@@ -45,6 +46,8 @@ public class PaymentActivationScreen {
         activateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                UsageInsightTracker.getInstance().RecordEvent(
+                        "ACTIVATE_PREMIUM_TOKEN_CLICKED", null);
                 updateStatus();
             }
         });
@@ -69,8 +72,12 @@ public class PaymentActivationScreen {
             setStatus("Activated \u2714", Color.decode("#1F8A3C"));
             insidiousService.makeBannerPremium();
             PopUpUtil.closeCurrentPopup();
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "PREMIUM_TOKEN_SUCCESSFULLY_ACTIVATED", null);
         } else {
             setStatus("Error - wrong product key \u26A0", Color.decode("#E46A76"));
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "PREMIUM_TOKEN_INVALID", null);
         }
     }
 
