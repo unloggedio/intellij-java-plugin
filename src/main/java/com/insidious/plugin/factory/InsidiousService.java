@@ -2035,7 +2035,6 @@ final public class InsidiousService implements
 
     public void onMethodCallExpressionInlayClick(List<PsiMethodCallExpression> mockableCallExpressions, MouseEvent mouseEvent, Point point) {
 
-        setLibraryPremiumState(authenticationService.isTokenValid());
         logger.warn("inlay clicked create mock");
         if (toolWindow == null) {
             initiateUI();
