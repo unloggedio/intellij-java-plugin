@@ -615,24 +615,15 @@ final public class InsidiousService implements
 
         stompWindowContent =
                 contentFactory.createContent(containerPanel, "Live", false);
-
         stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(stompWindowContent, 0);
         contentManager.setSelectedContent(stompWindowContent);
 
-
         libraryToolWindow = new LibraryComponent(project);
-
         libraryParentPanel.add(libraryPremiumBanner.getMainPanel(), BorderLayout.NORTH);
-        if (!authenticationService.isTokenValid()) {
-            libraryPremiumBanner.setPremiumUserFlag(false);
-        } else {
-            libraryPremiumBanner.setPremiumUserFlag(true);
-        }
-
+        libraryPremiumBanner.setPremiumUserFlag(authenticationService.isTokenValid());
         libraryParentPanel.add(libraryToolWindow.getComponent(), BorderLayout.CENTER);
-
         libraryWindowContent = contentFactory.createContent(
                 libraryParentPanel, "Library", false);
         libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
@@ -640,7 +631,6 @@ final public class InsidiousService implements
         contentManager.addContent(libraryWindowContent);
 
         onboardingWindow = new UnloggedSDKOnboarding(InsidiousService.this);
-
 
         RouterListener routerPanelListener = new RouterListener() {
             @Override
@@ -849,12 +839,11 @@ final public class InsidiousService implements
 
     public void makeBannerPremium() {
         containerPanel.makeAdBannerPremium();
-        makeAdBannerPremiumLibraryPanel();
+        setLibraryPremiumState(true);
     }
 
-    private void makeAdBannerPremiumLibraryPanel() {
-//        libraryParentPanel.remove(libraryPremiumBanner.getPremiumPanel());
-        libraryPremiumBanner.setPremiumUserFlag(true);
+    private void setLibraryPremiumState(boolean state) {
+        libraryPremiumBanner.setPremiumUserFlag(state);
         libraryParentPanel.revalidate();
         libraryParentPanel.repaint();
     }
@@ -940,14 +929,7 @@ final public class InsidiousService implements
                 return;
             }
         }
-//        if (authenticationService.isTokenValid()) {
-//            removeGetPremiumPanelFromLibraryPanel();
-//        } else {
-//
-//            System.out.println("show library went to true for premium banner");
-//            libraryPremiumBanner.getPremiumPanel().setVisible(true);
-//            libraryParentPanel.revalidate();
-//        }
+
         toolWindow.show();
         if (libraryWindowContent != null) {
             toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
@@ -2162,7 +2144,8 @@ final public class InsidiousService implements
         } else {
             containerPanel.setMethod(method);
         }
-
+        //Reload Library Banner state on gutter icon click
+        setLibraryPremiumState(authenticationService.isTokenValid());
     }
 
     public void showRouter() {
@@ -2172,7 +2155,6 @@ final public class InsidiousService implements
     public void reloadLibrary() {
         libraryToolWindow.reloadItems();
     }
-
 
     public void highlightTimingInformation(TestCandidateMetadata candidateMetadata, MethodUnderTest methodUnderTest) {
 

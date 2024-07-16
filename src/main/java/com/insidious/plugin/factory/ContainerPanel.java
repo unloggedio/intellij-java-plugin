@@ -31,11 +31,7 @@ public class ContainerPanel extends JPanel {
 
     private void initializePremiumAdBanner() {
         add(adBanner.getMainPanel(), BorderLayout.NORTH);
-        if (!authenticationService.isTokenValid()) {
-            adBanner.setPremiumUserFlag(false);
-        } else {
-            adBanner.setPremiumUserFlag(true);
-        }
+        adBanner.setPremiumUserFlag(authenticationService.isTokenValid());
         revalidate();
     }
 
