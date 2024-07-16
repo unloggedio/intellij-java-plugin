@@ -16,6 +16,7 @@ import org.json.JSONObject;
 
 public class AuthenticationService {
 
+//    TODO: validate state passing to all the components
     private static final String PUBLIC_KEY_PEM =
             "-----BEGIN PUBLIC KEY----- MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyHhfG92s6NpWmuQWhcE16qrVWL+qq4579N7uu7X8Ba+YQJOz1aPf6U5XlgLuNimBmIHR3nixpc/t/aVioI4uKKPpQJqbM/83Zjzakb1mRvZMBTXqt8kfp8G672G9Rkd52VIJbmFhQLg31Q+cCi1psx6N9ApQgXpjJz+W5O/I2kzahRWPz81VEC1xEnKLTxmkrySUIsQSAHAHEHx3gV1sWm2OjJWBooKFpcsO9Y/5B9AJcQHJN6a3yS3BVxMCFDKaDRBknCrWN6mDGS0wOb5iH2CtwogZVx+aPCRaDbC+lnHI7ltxEdUbRd/jIMEYDnU82av1cKA4T1g4O3JR80MIXwIDAQAB -----END PUBLIC KEY-----";
     private final InsidiousConfigurationState configurationState;

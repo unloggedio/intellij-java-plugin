@@ -50,8 +50,8 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.ui.payment.AuthenticationService;
 import com.insidious.plugin.ui.payment.PremiumAdBanner;
-import com.insidious.plugin.ui.payment.PremiumStateManager;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
@@ -179,7 +179,7 @@ final public class InsidiousService implements
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
     private final PremiumAdBanner liveViewPremiumBanner = new PremiumAdBanner(this, "live");
     private final PremiumAdBanner libraryPremiumBanner = new PremiumAdBanner(this, "library");
-    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout(), liveViewPremiumBanner);
+    private final ContainerPanel containerPanel;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -202,6 +202,7 @@ final public class InsidiousService implements
     private ServerMetadata serverMetadata = null;
     private RouterPanel routerPanel;
     private MethodDirectInvokeComponent directInvokeComponent;
+    private final AuthenticationService authenticationService;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -216,6 +217,8 @@ final public class InsidiousService implements
 
 
         configurationState = project.getService(InsidiousConfigurationState.class);
+        authenticationService = new AuthenticationService(configurationState);
+        containerPanel = new ContainerPanel(new BorderLayout(), liveViewPremiumBanner, authenticationService);
 
         ExecutionSession currentExecutionSession = configurationState.getExecutionSession();
         setUnloggedClient(UnloggedClientFactory.createClient(configurationState.getExecutionSessionSource()));
@@ -621,8 +624,11 @@ final public class InsidiousService implements
 
         libraryToolWindow = new LibraryComponent(project);
 
-        if (!PremiumStateManager.isPremiumUser()) {
-            libraryParentPanel.add(libraryPremiumBanner.getPremiumPanel(), BorderLayout.NORTH);
+        libraryParentPanel.add(libraryPremiumBanner.getPremiumPanel(), BorderLayout.NORTH);
+        if (!authenticationService.isTokenValid()) {
+            libraryPremiumBanner.getPremiumPanel().setVisible(true);
+        } else {
+            libraryPremiumBanner.getPremiumPanel().setVisible(false);
         }
 
         libraryParentPanel.add(libraryToolWindow.getComponent(), BorderLayout.CENTER);
@@ -847,7 +853,8 @@ final public class InsidiousService implements
     }
 
     private void removeGetPremiumPanelFromLibraryPanel() {
-        libraryParentPanel.remove(libraryPremiumBanner.getPremiumPanel());
+//        libraryParentPanel.remove(libraryPremiumBanner.getPremiumPanel());
+        libraryPremiumBanner.getPremiumPanel().setVisible(false);
         libraryParentPanel.revalidate();
         libraryParentPanel.repaint();
     }
@@ -933,6 +940,14 @@ final public class InsidiousService implements
                 return;
             }
         }
+//        if (authenticationService.isTokenValid()) {
+//            removeGetPremiumPanelFromLibraryPanel();
+//        } else {
+//
+//            System.out.println("show library went to true for premium banner");
+//            libraryPremiumBanner.getPremiumPanel().setVisible(true);
+//            libraryParentPanel.revalidate();
+//        }
         toolWindow.show();
         if (libraryWindowContent != null) {
             toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);

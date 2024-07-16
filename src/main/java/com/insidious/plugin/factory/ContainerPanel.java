@@ -3,8 +3,8 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.ui.methodscope.RouterPanel;
+import com.insidious.plugin.ui.payment.AuthenticationService;
 import com.insidious.plugin.ui.payment.PremiumAdBanner;
-import com.insidious.plugin.ui.payment.PremiumStateManager;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -19,15 +19,18 @@ public class ContainerPanel extends JPanel {
     private RouterPanel routerPanel;
     private ComponentProvider currentContent;
     private JPanel container;
+    private final AuthenticationService authenticationService;
 
-    public ContainerPanel(LayoutManager layoutManager, PremiumAdBanner premiumAdBanner) {
+    public ContainerPanel(LayoutManager layoutManager, PremiumAdBanner premiumAdBanner, AuthenticationService authenticationService) {
         super(layoutManager);
         this.premiumPanel = premiumAdBanner;
+        this.authenticationService = authenticationService;
         initializePremiumAdBanner();
+
     }
 
     private void initializePremiumAdBanner() {
-        if (!PremiumStateManager.isPremiumUser()) {
+        if (!authenticationService.isTokenValid()) {
             add(premiumPanel.getPremiumPanel(), BorderLayout.NORTH);
         }
         revalidate();
