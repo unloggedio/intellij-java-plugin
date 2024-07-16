@@ -96,6 +96,9 @@ public class SessionEventReader implements Runnable {
                 new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(nameWithBytes.getBytes()));
         ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
                 .entries();
+
+        new File(nameWithBytes.getCacheFileLocation()).delete();
+
         int count = events.size();
         long end = new Date().getTime();
         long timeInMs = end - start;

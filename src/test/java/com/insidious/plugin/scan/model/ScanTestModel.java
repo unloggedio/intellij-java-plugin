@@ -4,7 +4,7 @@ import java.util.Map;
 
 public class ScanTestModel {
     private String sessionFolder;
-    private Map<MethodReference, String> assertions;
+    private Map<MethodReference, AssertionOptions> assertions;
 
     public String getSessionFolder() {
         return sessionFolder;
@@ -14,15 +14,15 @@ public class ScanTestModel {
         this.sessionFolder = sessionFolder;
     }
 
-    public Map<MethodReference, String> getAssertions() {
+    public Map<MethodReference, AssertionOptions> getAssertions() {
         return assertions;
     }
 
-    public void setAssertions(Map<MethodReference, String> assertions) {
+    public void setAssertions(Map<MethodReference, AssertionOptions> assertions) {
         this.assertions = assertions;
     }
 
-    public ScanTestModel(String sessionFolder, Map<MethodReference, String> assertions) {
+    public ScanTestModel(String sessionFolder, Map<MethodReference, AssertionOptions> assertions) {
         this.sessionFolder = sessionFolder;
         this.assertions = assertions;
     }

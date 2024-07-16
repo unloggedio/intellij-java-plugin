@@ -1,17 +1,18 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.MethodDisplayComponent;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
-import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class RouterPanel {
+public class RouterPanel implements ComponentProvider {
+    private final MethodDisplayComponent methodDisplayComponent;
     private JLabel executeMethodRouteLabel;
     private JLabel runReplayTests;
     private JLabel filterInTimeline;
@@ -21,10 +22,26 @@ public class RouterPanel {
     private JLabel fuzzyTestLabel;
     private JPanel mainPanel;
     private JLabel replayJunitTest;
-    private JPanel runtimeActionPanel;
+    private JLabel setupInstructionsLabel;
+    private JLabel requiredSdkInfoLabel;
+    private JPanel methodInfoContainer;
+    private JPanel withSdkPanel;
+    private JPanel withoutSdkPanel;
+    private MethodAdapter method;
+    private boolean miniMode;
 
-    public RouterPanel(RouterListener routerListener) {
+    public RouterPanel(RouterListener routerListener, InsidiousService insidiousService) {
 
+        setupInstructionsLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        setupInstructionsLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routerListener.showOnboardingInstructions();
+            }
+        });
+
+        methodDisplayComponent = new MethodDisplayComponent(insidiousService);
+        methodInfoContainer.add(methodDisplayComponent.getComponent(), BorderLayout.CENTER);
 
         loadTestLabel.setEnabled(false);
         loadTestLabel.setToolTipText("Coming soon");
@@ -85,7 +102,6 @@ public class RouterPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 routerListener.showDirectInvoke();
-
             }
         });
 
@@ -129,9 +145,40 @@ public class RouterPanel {
 
     }
 
+    public void setMethod(MethodAdapter method) {
+        this.method = method;
+        methodDisplayComponent.setMethod(method);
+        methodInfoContainer.removeAll();
+        methodInfoContainer.add(methodDisplayComponent.getComponent(), BorderLayout.CENTER);
+        setMiniMode(false);
+    }
 
 
     public JPanel getComponent() {
         return mainPanel;
+    }
+
+    @Override
+    public String getTitle() {
+        return "";
+    }
+
+    public void setMiniMode(boolean b) {
+        this.miniMode = b;
+        if (this.miniMode) {
+            withSdkPanel.setVisible(false);
+            withoutSdkPanel.setVisible(false);
+            methodDisplayComponent.showBackButtonVisible(true);
+            mainPanel.setMaximumSize(new Dimension(-1, -1));
+        } else {
+            withSdkPanel.setVisible(true);
+            withoutSdkPanel.setVisible(true);
+            methodDisplayComponent.showBackButtonVisible(false);
+            mainPanel.setMaximumSize(new Dimension(-1, 100));
+        }
+    }
+
+    public void setTitle(String title) {
+        methodDisplayComponent.setDescription(title);
     }
 }

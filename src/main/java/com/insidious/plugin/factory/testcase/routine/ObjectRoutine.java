@@ -40,6 +40,9 @@ public class ObjectRoutine {
 
     public static List<Parameter> getNonPojoParameters(List<TestCandidateMetadata> testCandidateList1,
 														SessionInstanceInterface sessionInstance) {
+        if (sessionInstance == null) {
+            return new ArrayList<>();
+        }
         Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
 
         return testCandidateList1.stream()

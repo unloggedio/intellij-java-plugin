@@ -126,38 +126,17 @@
               </component>
             </children>
           </grid>
-          <splitpane id="116f4" binding="splitPane">
+          <scrollpane id="76ecd" binding="historyStreamScrollPanel">
             <constraints border-constraint="Center"/>
             <properties>
-              <dividerLocation value="1000"/>
-              <orientation value="0"/>
-              <resizeWeight value="1.0"/>
+              <horizontalScrollBarPolicy value="31"/>
+              <verticalScrollBarPolicy value="22"/>
             </properties>
-            <border type="none"/>
-            <children>
-              <scrollpane id="76ecd" binding="historyStreamScrollPanel">
-                <constraints>
-                  <splitpane position="left"/>
-                </constraints>
-                <properties>
-                  <horizontalScrollBarPolicy value="31"/>
-                  <verticalScrollBarPolicy value="22"/>
-                </properties>
-                <border type="empty">
-                  <size top="10" left="10" bottom="10" right="10"/>
-                </border>
-                <children/>
-              </scrollpane>
-              <grid id="a5b65" binding="southPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints>
-                  <splitpane position="right"/>
-                </constraints>
-                <properties/>
-                <border type="none"/>
-                <children/>
-              </grid>
-            </children>
-          </splitpane>
+            <border type="empty">
+              <size top="10" left="10" bottom="10" right="10"/>
+            </border>
+            <children/>
+          </scrollpane>
         </children>
       </grid>
     </children>

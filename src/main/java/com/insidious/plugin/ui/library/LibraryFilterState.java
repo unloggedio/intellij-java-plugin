@@ -87,4 +87,17 @@ public class LibraryFilterState {
         this.followEditor = libraryFilterState.followEditor;
         this.candidateFilterType = libraryFilterState.candidateFilterType;
     }
+
+    @Override
+    public String toString() {
+        return "LibraryFilterState{" +
+                "includedClassNames=" + includedClassNames +
+                ", excludedClassNames=" + excludedClassNames +
+                ", includedMethodNames=" + includedMethodNames +
+                ", excludedMethodNames=" + excludedMethodNames +
+                ", followEditor=" + followEditor +
+                ", candidateFilterType=" + candidateFilterType +
+                ", itemFilterType=" + itemFilterType +
+                '}';
+    }
 }
