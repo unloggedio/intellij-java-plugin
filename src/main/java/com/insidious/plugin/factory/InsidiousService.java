@@ -792,7 +792,7 @@ final public class InsidiousService implements
                 setLibraryPremiumState(authenticationService.isTokenValid());
             }
         };
-        routerPanel = new RouterPanel(routerPanelListener, this);
+        routerPanel = new RouterPanel(routerPanelListener, this, authenticationService);
         containerPanel.setStompComponent(stompWindow, routerPanel);
         routerPanelListener.showOnboardingInstructions();
 
@@ -848,7 +848,7 @@ final public class InsidiousService implements
         setLibraryPremiumState(true);
     }
 
-    private void setLibraryPremiumState(boolean state) {
+    public void setLibraryPremiumState(boolean state) {
         libraryPremiumBanner.setPremiumUserFlag(state);
         libraryParentPanel.revalidate();
         libraryParentPanel.repaint();
@@ -2035,6 +2035,7 @@ final public class InsidiousService implements
 
     public void onMethodCallExpressionInlayClick(List<PsiMethodCallExpression> mockableCallExpressions, MouseEvent mouseEvent, Point point) {
 
+        setLibraryPremiumState(authenticationService.isTokenValid());
         logger.warn("inlay clicked create mock");
         if (toolWindow == null) {
             initiateUI();
