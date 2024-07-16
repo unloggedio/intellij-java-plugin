@@ -641,6 +641,8 @@ final public class InsidiousService implements
                     return;
                 }
                 InsidiousService.this.showDirectInvoke((JavaMethodAdapter) currentState.getCurrentMethod(), null);
+                //Reload Library Banner state on direct invoke click
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -654,6 +656,7 @@ final public class InsidiousService implements
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     InsidiousService.this.showStompAndFilterForMethod(currentState.getCurrentMethod());
                 });
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -677,6 +680,7 @@ final public class InsidiousService implements
                         containerPanel.setViewport(designerLite);
                     });
                 });
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -723,7 +727,7 @@ final public class InsidiousService implements
                             .invokeLater(() -> containerPanel.setViewport(designerLite));
 
                 });
-
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -772,6 +776,7 @@ final public class InsidiousService implements
                         }
                     }
                 });
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -784,6 +789,7 @@ final public class InsidiousService implements
             @Override
             public void showOnboardingInstructions() {
                 containerPanel.setViewport(onboardingWindow);
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
         };
         routerPanel = new RouterPanel(routerPanelListener, this);
