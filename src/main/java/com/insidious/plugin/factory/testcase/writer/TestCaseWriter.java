@@ -134,7 +134,11 @@ public class TestCaseWriter {
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
         int methodAccess = 0;
         if (modifierList != null) {
-            for (PsiElement child : modifierList.getChildren()) {
+
+            PsiElement[] childList = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiElement[]>) modifierList::getChildren);
+
+            for (PsiElement child : childList) {
                 String text = ApplicationManager.getApplication().runReadAction(
                         (Computable<String>) child::getText);
                 switch (text) {
