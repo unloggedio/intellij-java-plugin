@@ -17,6 +17,9 @@ public class PaymentScreen {
     private JLabel point1;
     private JLabel point2;
     private JLabel point3;
+    private JLabel point4;
+    private JLabel point5;
+    private JLabel point6;
     private final InsidiousService insidiousService;
 
 
