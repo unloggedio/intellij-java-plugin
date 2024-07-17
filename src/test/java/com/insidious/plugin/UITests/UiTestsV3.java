@@ -86,7 +86,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(2)
-    public void vaildate_getPremiumBannerAcrossScreens(){
+    public void vaildate_getPremiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(false);
     }
 
@@ -1874,17 +1874,17 @@ public class UiTestsV3 {
         step("Validate Banner in Library View", () -> {
             controller.getIdeaFrame().getlibraryTabHeader().moveMouse();
             controller.getIdeaFrame().getlibraryTabHeader().click();
-            pause(250);
+            pause(ofMillis(250).toMillis());
             ComponentFixture banner = isPremium ? controller.getIdeaFrame().getPremiumUserText() : controller.getIdeaFrame().getGetPremiumText();
-            Assertions.assertTrue( banner.isShowing());
+            Assertions.assertTrue(banner.isShowing());
         });
 
         step("Validate Banner in Live View", () -> {
             controller.getIdeaFrame().getLiveTabHeader().moveMouse();
             controller.getIdeaFrame().getLiveTabHeader().click();
-            pause(250);
+            pause(ofMillis(250).toMillis());
             ComponentFixture banner = isPremium ? controller.getIdeaFrame().getPremiumUserText() : controller.getIdeaFrame().getGetPremiumText();
-            Assertions.assertTrue( banner.isShowing());
+            Assertions.assertTrue(banner.isShowing());
         });
     }
 
@@ -1894,13 +1894,13 @@ public class UiTestsV3 {
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
             backToMenuIfOpen(controller);
-            pause(250);
+            pause(ofMillis(250).toMillis());
         });
 
         step("Open and click Banner in Live View and validate first pop-up", () -> {
             controller.getIdeaFrame().getLiveTabHeader().moveMouse();
             controller.getIdeaFrame().getLiveTabHeader().click();
-            pause(250);
+            pause(ofMillis(250).toMillis());
             controller.getIdeaFrame().getGetPremiumText().moveMouse();
             controller.getIdeaFrame().getGetPremiumText().click();
             Assertions.assertTrue(controller.getIdeaFrame().getFirstFeatureInList().isShowing());
@@ -1910,19 +1910,19 @@ public class UiTestsV3 {
             controller.getIdeaFrame().getActivatePremium().moveMouse();
             controller.getIdeaFrame().getActivatePremium().click();
             controller.getIdeaFrame().getKeyEnterArea().click();
-            StringSelection keyString = new StringSelection(key);
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(keyString, null);
-            controller.getKeyboard().hotKey(VK_META, VK_V);
+
+            quickPaste(controller, key);
+
             controller.getIdeaFrame().getActivatePremium().moveMouse();
             controller.getIdeaFrame().getActivatePremium().click();
-            if(!isKeyCorrect) {
+            if (!isKeyCorrect) {
                 Assertions.assertTrue(controller.getIdeaFrame().getWrongKeyText().isShowing());
                 controller.getIdeaFrame().getPopUpCloseIcon().moveMouse();
                 controller.getIdeaFrame().getPopUpCloseIcon().click();
             } else {
                 controller.getIdeaFrame().getLiveTabHeader().moveMouse();
                 controller.getIdeaFrame().getLiveTabHeader().click();
-                Assertions.assertTrue( controller.getIdeaFrame().getPremiumUserText().isShowing());
+                Assertions.assertTrue(controller.getIdeaFrame().getPremiumUserText().isShowing());
             }
         });
     }
