@@ -9,11 +9,14 @@ import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.*;
 
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.util.*;
 import java.util.List;
 
 import static com.insidious.plugin.UITests.Utils.UITestUtils.*;
 import static com.insidious.plugin.UITests.Utils.UiTestInteractionUtils.*;
+import static com.insidious.plugin.UITests.wrapper.TestConstants.VALID_LICENSE_KEY;
 import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
 import static org.assertj.swing.timing.Pause.pause;
@@ -83,6 +86,30 @@ public class UiTestsV3 {
 
     @Test
     @Order(2)
+    public void vaildate_getPremiumBannerAcrossScreens(){
+        validateBannerPresenceAcrossScreens(false);
+    }
+
+    @Test
+    @Order(3)
+    public void vaildate_wrongKeyEntry() {
+        validateKeyEntry(false);
+    }
+
+    @Test
+    @Order(4)
+    public void vaildate_correctKeyEntry() {
+        validateKeyEntry(true);
+    }
+
+    @Test
+    @Order(5)
+    public void vaildate_premiumBannerAcrossScreens() {
+        validateBannerPresenceAcrossScreens(true);
+    }
+
+    @Test
+    @Order(6)
     //@Disabled
     public void runnerFile_injection_test_maven_demo() {
         runnerFileInjectionAndAssertion();
@@ -90,7 +117,7 @@ public class UiTestsV3 {
 
     //remote mode start - start of remote chain tests for maven - demo
     @Test
-    @Order(3)
+    @Order(7)
     //@Disabled
     public void local_mode_frequencey_logging_Test() {
         //add to other files
@@ -310,7 +337,7 @@ public class UiTestsV3 {
 
     //remote mode start - start of remote chain tests for maven - demo
     @Test
-    @Order(4)
+    @Order(8)
     //@Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
@@ -396,7 +423,7 @@ public class UiTestsV3 {
 
     //remote mode start - debug DirectInvoke for this method
     @Test
-    @Order(5)
+    @Order(9)
     //@Disabled
     public void serverIssue_14() {
         int projectIndex = 0;
@@ -424,7 +451,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(6)
+    @Order(10)
     //@Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
@@ -464,7 +491,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(7)
+    @Order(11)
     //@Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
@@ -487,7 +514,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(8)
+    @Order(12)
     //@Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
@@ -548,7 +575,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(9)
+    @Order(13)
     //@Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
@@ -571,7 +598,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(10)
+    @Order(14)
     //@Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
@@ -599,7 +626,7 @@ public class UiTestsV3 {
 
     //remote mode - ending case
     @Test
-    @Order(11)
+    @Order(15)
     //@Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
@@ -647,7 +674,7 @@ public class UiTestsV3 {
     //------------------------------
     //local mode start and sanity
     @Test
-    @Order(12)
+    @Order(16)
     //@Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
@@ -715,7 +742,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(13)
+    @Order(17)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
@@ -773,7 +800,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(14)
+    @Order(18)
     //@Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
@@ -791,7 +818,7 @@ public class UiTestsV3 {
 
     //Server Issues Sheet - Issue 73
     @Test
-    @Order(15)
+    @Order(19)
     //@Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
@@ -821,7 +848,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(16)
+    @Order(20)
     //@Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
@@ -859,7 +886,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(17)
+    @Order(21)
     //@Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
@@ -885,7 +912,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(18)
+    @Order(22)
     //@Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
@@ -912,7 +939,7 @@ public class UiTestsV3 {
 
     //start in local mode - ending case
     @Test
-    @Order(19)
+    @Order(23)
     //@Disabled
     public void serverIssue_46() {
         //set filter to remote mode
@@ -960,7 +987,7 @@ public class UiTestsV3 {
     //start in local mode
     //an ending case
     @Test
-    @Order(20)
+    @Order(24)
     //@Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
@@ -1030,7 +1057,7 @@ public class UiTestsV3 {
     //start in local mode
     //an ending case
     @Test
-    @Order(21)
+    @Order(25)
     //@Disabled
     public void serverIssue_37() {
         //set filter to remote mode
@@ -1097,7 +1124,7 @@ public class UiTestsV3 {
 
     //doesn't need project to start
     @Test
-    @Order(22)
+    @Order(26)
     //@Disabled
     public void serverIssues_23() {
         int switchCount = 10;
@@ -1124,7 +1151,7 @@ public class UiTestsV3 {
     //----------------------------
     //switch to gradle project
     @Test
-    @Order(23)
+    @Order(27)
     //@Disabled
     public void gradle_project_onboarding() {
         int projectIndex = 1;
@@ -1166,7 +1193,7 @@ public class UiTestsV3 {
 
 
     @Test
-    @Order(24)
+    @Order(28)
     //@Disabled
     public void runnerFile_injection_test_gradle_demo() {
         runnerFileInjectionAndAssertion();
@@ -1174,7 +1201,7 @@ public class UiTestsV3 {
 
 
     @Test
-    @Order(25)
+    @Order(29)
     //@Disabled
     public void remote_mode_general_gradle() {
         int projectIndex = 1;
@@ -1246,7 +1273,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(26)
+    @Order(30)
     //@Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
@@ -1312,7 +1339,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(27)
+    @Order(31)
     //@Disabled
     public void replayCaseSave_sanity_remote_gradle() {
 
@@ -1341,7 +1368,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(28)
+    @Order(32)
     //@Disabled
     public void run_mode_local_general_gradle() {
         int projectIndex = 1;
@@ -1408,7 +1435,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(29)
+    @Order(33)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
@@ -1473,7 +1500,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(30)
+    @Order(34)
     //@Disabled
     public void replayCaseSave_sanity_local_gradle() {
         step("Clear filter and selections", () -> {
@@ -1495,7 +1522,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(31)
+    @Order(35)
     //@Disabled
     public void close_LastProject() {
         step("Open readme file to prevent shortcut clash", () -> {
@@ -1508,7 +1535,7 @@ public class UiTestsV3 {
     //Add multimodule cases from multi-module-demo1
     //----------------
     @Test
-    @Order(32)
+    @Order(36)
     //@Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
@@ -1530,7 +1557,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(33)
+    @Order(37)
     //@Disabled
     public void multimodule_local_sanity_multimodule() {
         int projectIndex = 2;
@@ -1668,7 +1695,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(34)
+    @Order(38)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
@@ -1836,6 +1863,67 @@ public class UiTestsV3 {
             openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
             Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
         });
+    }
 
+    private void validateBannerPresenceAcrossScreens(boolean isPremium) {
+        step("Open toolbar if not already open", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+        });
+
+        step("Validate Banner in Library View", () -> {
+            controller.getIdeaFrame().getlibraryTabHeader().moveMouse();
+            controller.getIdeaFrame().getlibraryTabHeader().click();
+            pause(250);
+            ComponentFixture banner = isPremium ? controller.getIdeaFrame().getPremiumUserText() : controller.getIdeaFrame().getGetPremiumText();
+            Assertions.assertTrue( banner.isShowing());
+        });
+
+        step("Validate Banner in Live View", () -> {
+            controller.getIdeaFrame().getLiveTabHeader().moveMouse();
+            controller.getIdeaFrame().getLiveTabHeader().click();
+            pause(250);
+            ComponentFixture banner = isPremium ? controller.getIdeaFrame().getPremiumUserText() : controller.getIdeaFrame().getGetPremiumText();
+            Assertions.assertTrue( banner.isShowing());
+        });
+    }
+
+    private void validateKeyEntry(boolean isKeyCorrect) {
+        String key = isKeyCorrect ? VALID_LICENSE_KEY : "wrong_key";
+
+        step("Open toolbar if not already open", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+            pause(250);
+        });
+
+        step("Open and click Banner in Live View and validate first pop-up", () -> {
+            controller.getIdeaFrame().getLiveTabHeader().moveMouse();
+            controller.getIdeaFrame().getLiveTabHeader().click();
+            pause(250);
+            controller.getIdeaFrame().getGetPremiumText().moveMouse();
+            controller.getIdeaFrame().getGetPremiumText().click();
+            Assertions.assertTrue(controller.getIdeaFrame().getFirstFeatureInList().isShowing());
+        });
+
+        step("Validate second pop-up", () -> {
+            controller.getIdeaFrame().getActivatePremium().moveMouse();
+            controller.getIdeaFrame().getActivatePremium().click();
+            controller.getIdeaFrame().getKeyEnterArea().click();
+            StringSelection keyString = new StringSelection(key);
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(keyString, null);
+            controller.getKeyboard().hotKey(VK_META, VK_V);
+            controller.getIdeaFrame().getActivatePremium().moveMouse();
+            controller.getIdeaFrame().getActivatePremium().click();
+            if(!isKeyCorrect) {
+                Assertions.assertTrue(controller.getIdeaFrame().getWrongKeyText().isShowing());
+                controller.getIdeaFrame().getPopUpCloseIcon().moveMouse();
+                controller.getIdeaFrame().getPopUpCloseIcon().click();
+            } else {
+                controller.getIdeaFrame().getLiveTabHeader().moveMouse();
+                controller.getIdeaFrame().getLiveTabHeader().click();
+                Assertions.assertTrue( controller.getIdeaFrame().getPremiumUserText().isShowing());
+            }
+        });
     }
 }
