@@ -5,6 +5,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.methodscope.ComponentProvider;
+import com.insidious.plugin.util.BrowserRouteUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.ui.JBColor;
@@ -94,15 +95,21 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                routeToDiscord();
+                BrowserRouteUtils.routeInBrowser("https://discord.gg/Hhwvay8uTa",
+                        "Reach out to us on <a href='https://discord.gg/Hhwvay8uTa'>Discord</a>",
+                        "routeToDiscord");
             }
         });
 
         emailButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        //
         emailButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                routeToEmail();
+                BrowserRouteUtils.routeInBrowser("mailto:ssl@unlogged.io",
+                        "Reach out to us via <a href='mailto:ssl@unlogged.io'>mail</a>",
+                        "routeToEmail");
             }
         });
 
@@ -110,7 +117,9 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
         githubButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                routeToGithub();
+                BrowserRouteUtils.routeInBrowser("https://github.com/unloggedio/unlogged-sdk?tab=readme-ov-file#unlogged-java-sdk",
+                        "Check us out on <a href='https://github.com/unloggedio/unlogged-sdk?tab=readme-ov-file#unlogged-java-sdk'>Github</a>",
+                        "routeToGithub");
             }
         });
 
@@ -226,51 +235,6 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
             InsidiousNotification.notifyMessage("Copied to clipboard",
                     NotificationType.INFORMATION);
         }
-    }
-
-    public void routeToDiscord() {
-        String link = "https://discord.gg/Hhwvay8uTa";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
-        } else {
-            //no browser
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToDiscord", null);
-    }
-
-    public void routeToEmail() {
-        String link = "mailto:ssl@unlogged.io";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
-        } else {
-            //no browser
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToEmail", null);
-    }
-
-    public void routeToGithub() {
-        String link = "https://github.com/unloggedio/unlogged-sdk?tab=readme-ov-file#unlogged-java-sdk";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
-        } else {
-            //no browser
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToGithub", null);
     }
 
     public JComponent getComponent() {

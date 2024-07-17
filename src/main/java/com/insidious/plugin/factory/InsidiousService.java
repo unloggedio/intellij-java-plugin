@@ -50,6 +50,8 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.ui.payment.AuthenticationService;
+import com.insidious.plugin.ui.payment.PremiumAdBanner;
 import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
@@ -175,7 +177,9 @@ final public class InsidiousService implements
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
-    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout());
+    private final PremiumAdBanner liveViewPremiumBanner = new PremiumAdBanner(this, "live");
+    private final PremiumAdBanner libraryPremiumBanner = new PremiumAdBanner(this, "library");
+    private final ContainerPanel containerPanel;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -193,10 +197,12 @@ final public class InsidiousService implements
     private boolean addedStompWindow;
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
+    private final JPanel libraryParentPanel = new JPanel(new BorderLayout());
     private ToolWindow toolWindow;
     private ServerMetadata serverMetadata = null;
     private RouterPanel routerPanel;
     private MethodDirectInvokeComponent directInvokeComponent;
+    private final AuthenticationService authenticationService;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -211,6 +217,8 @@ final public class InsidiousService implements
 
 
         configurationState = project.getService(InsidiousConfigurationState.class);
+        authenticationService = new AuthenticationService(configurationState);
+        containerPanel = new ContainerPanel(new BorderLayout(), liveViewPremiumBanner, authenticationService);
 
         ExecutionSession currentExecutionSession = configurationState.getExecutionSession();
         setUnloggedClient(UnloggedClientFactory.createClient(configurationState.getExecutionSessionSource()));
@@ -607,23 +615,22 @@ final public class InsidiousService implements
 
         stompWindowContent =
                 contentFactory.createContent(containerPanel, "Live", false);
-
         stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(stompWindowContent, 0);
         contentManager.setSelectedContent(stompWindowContent);
 
-
         libraryToolWindow = new LibraryComponent(project);
-
+        libraryParentPanel.add(libraryPremiumBanner.getMainPanel(), BorderLayout.NORTH);
+        libraryPremiumBanner.setPremiumUserFlag(authenticationService.isTokenValid());
+        libraryParentPanel.add(libraryToolWindow.getComponent(), BorderLayout.CENTER);
         libraryWindowContent = contentFactory.createContent(
-                libraryToolWindow.getComponent(), "Library", false);
+                libraryParentPanel, "Library", false);
         libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
         contentManager.addContent(libraryWindowContent);
 
         onboardingWindow = new UnloggedSDKOnboarding(InsidiousService.this);
-
 
         RouterListener routerPanelListener = new RouterListener() {
             @Override
@@ -634,6 +641,8 @@ final public class InsidiousService implements
                     return;
                 }
                 InsidiousService.this.showDirectInvoke((JavaMethodAdapter) currentState.getCurrentMethod(), null);
+                //Reload Library Banner state on direct invoke click
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -647,6 +656,7 @@ final public class InsidiousService implements
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     InsidiousService.this.showStompAndFilterForMethod(currentState.getCurrentMethod());
                 });
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -670,6 +680,7 @@ final public class InsidiousService implements
                         containerPanel.setViewport(designerLite);
                     });
                 });
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -716,7 +727,7 @@ final public class InsidiousService implements
                             .invokeLater(() -> containerPanel.setViewport(designerLite));
 
                 });
-
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -765,6 +776,7 @@ final public class InsidiousService implements
                         }
                     }
                 });
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
 
             @Override
@@ -777,9 +789,10 @@ final public class InsidiousService implements
             @Override
             public void showOnboardingInstructions() {
                 containerPanel.setViewport(onboardingWindow);
+                setLibraryPremiumState(authenticationService.isTokenValid());
             }
         };
-        routerPanel = new RouterPanel(routerPanelListener, this);
+        routerPanel = new RouterPanel(routerPanelListener, this, authenticationService);
         containerPanel.setStompComponent(stompWindow, routerPanel);
         routerPanelListener.showOnboardingInstructions();
 
@@ -828,6 +841,17 @@ final public class InsidiousService implements
 
     public Project getProject() {
         return project;
+    }
+
+    public void makeBannerPremium() {
+        containerPanel.makeAdBannerPremium();
+        setLibraryPremiumState(true);
+    }
+
+    public void setLibraryPremiumState(boolean state) {
+        libraryPremiumBanner.setPremiumUserFlag(state);
+        libraryParentPanel.revalidate();
+        libraryParentPanel.repaint();
     }
 
     public ExecutionSessionSource getSessionSource() {
@@ -911,6 +935,7 @@ final public class InsidiousService implements
                 return;
             }
         }
+
         toolWindow.show();
         if (libraryWindowContent != null) {
             toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
@@ -2125,7 +2150,8 @@ final public class InsidiousService implements
         } else {
             containerPanel.setMethod(method);
         }
-
+        //Reload Library Banner state on gutter icon click
+        setLibraryPremiumState(authenticationService.isTokenValid());
     }
 
     public void showRouter() {
@@ -2135,7 +2161,6 @@ final public class InsidiousService implements
     public void reloadLibrary() {
         libraryToolWindow.reloadItems();
     }
-
 
     public void highlightTimingInformation(TestCandidateMetadata candidateMetadata, MethodUnderTest methodUnderTest) {
 
