@@ -12,9 +12,11 @@ import com.intellij.remoterobot.utils.Locators;
 import org.assertj.swing.fixture.JComboBoxFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
+import java.awt.*;
 
 import static java.time.Duration.*;
 
+import java.awt.datatransfer.StringSelection;
 import java.rmi.Remote;
 import java.util.List;
 import java.util.Map;
@@ -728,5 +730,11 @@ public class UiTestInteractionUtils {
 
         controller.getIdeaFrame().getSaveFromConfirmButton().click();
         pause(ofSeconds(2).toMillis());
+    }
+
+    public static void quickPaste(RemoteRobotController controller, String input) {
+        StringSelection content = new StringSelection(input);
+        java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(content, null);
+        controller.getKeyboard().hotKey(VK_META, VK_V);
     }
 }

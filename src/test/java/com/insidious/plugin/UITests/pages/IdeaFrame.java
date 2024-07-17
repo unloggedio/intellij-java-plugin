@@ -449,6 +449,34 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_SELECTIONS_CANSDIDATE);
     }
 
+    public ComponentFixture getGetPremiumText() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GET_PREMIUM_TEXT);
+    }
+
+    public ComponentFixture getActivatePremium() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.ACTIVATE_PREMIUM);
+    }
+
+    public ComponentFixture getKeyEnterArea() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.KEY_ENTER_AREA);
+    }
+
+    public ComponentFixture getPremiumUserText() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.PREMIUM_USER_TEXT);
+    }
+
+    public ComponentFixture getFirstFeatureInList() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FIRST_FEATURE_IN_LIST);
+    }
+
+    public ComponentFixture getWrongKeyText() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.WRONG_KEY_TEXT);
+    }
+
+    public ComponentFixture getPopUpCloseIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.POP_UP_CLOSE_ICON);
+    }
+
     public ComponentFixture getBackToMenuButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BACK_TO_MENU_BUTTON);
     }

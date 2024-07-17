@@ -70,6 +70,7 @@ public class UITestUtils {
         MOCK_POPUP_SCROLL_PANEL("//div[@class='JScrollPane'][.//div[@class='JCheckBox']]"),
         MOCK_POPUP_CLOSE_ICON("//div[@tooltiptext='Close']"),
         INJECT_POP_UP_CLOSE_ICON("//div[@tooltiptext='Close']"),
+        POP_UP_CLOSE_ICON("//div[@tooltiptext='Close']"),
         TOOLBAR_REFRESH("//div[@myicon='refresh.svg']"),
         TOOLBAR_DELETE_ICON("//div[@myicon='gc.svg']"),
         JUNIT_TOP_TOOLBAR("//div[@myicon='tests.svg']"),
@@ -136,7 +137,13 @@ public class UITestUtils {
         BUILD_TOOLBAR_BOTTOM("//div[@tooltiptext='Build']"),
         FILTER_ON_TIMELINE_NAV("//div[@defaulticon='filter.svg']"),
         GRADLE_REFRESH_ICON("//div[@tooltiptext='Reload All Gradle Projects']"),
-        CLEAR_SELECTIONS_CANSDIDATE("//div[@visible_text='Clear selection']");
+        CLEAR_SELECTIONS_CANSDIDATE("//div[@visible_text='Clear selection']"),
+        GET_PREMIUM_TEXT("//div[@visible_text='Get Premium!']"),
+        ACTIVATE_PREMIUM("//div[@text='Activate Premium']"),
+        KEY_ENTER_AREA("//div[@class='JViewport']//div[@class='JTextArea']"),
+        PREMIUM_USER_TEXT("//div[@visible_text='Premium User']"),
+        FIRST_FEATURE_IN_LIST("//div[@accessiblename='Get priority support']"),
+        WRONG_KEY_TEXT("//div[@text='Error - wrong product key ⚠']");
 
         private String value;
 
