@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.ui.payment.AuthenticationService;
 import com.insidious.plugin.util.UIUtils;
 
 import javax.swing.*;
@@ -14,15 +15,19 @@ public class MethodDisplayComponent {
     private JLabel selectedRouterInfoPanel;
     private JButton backButton;
 
-    public MethodDisplayComponent(InsidiousService insidiousService) {
+    private final AuthenticationService authenticationService;
+    public MethodDisplayComponent(InsidiousService insidiousService, AuthenticationService authenticationService) {
         methodNameLabel.setIcon(UIUtils.EXECUTE);
         backButton.setVisible(false);
+        this.authenticationService = authenticationService;
         backButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 backButton.setVisible(false);
                 selectedRouterInfoPanel.setText("");
                 insidiousService.showRouter();
+                //
+                insidiousService.setLibraryPremiumState(authenticationService.isTokenValid());
             }
         });
     }

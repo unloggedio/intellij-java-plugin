@@ -1,9 +1,9 @@
 package com.insidious.plugin.ui.testrunnerinjection.util;
 
 /**
- * Common Utility Class.
+ * Test Runner File content Utility Class for Test Runner Injection.
  */
-public class CommonUtil {
+public class RunnerFileContentUtils {
 
     /**
      * Generates the content for the test runner file.

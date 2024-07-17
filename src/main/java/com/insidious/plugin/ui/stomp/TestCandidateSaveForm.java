@@ -75,7 +75,7 @@ public class TestCandidateSaveForm implements ComponentProvider {
     private JPanel replayLabelContainer;
     private JPanel hiddenCandidateListContainer;
     private JButton confirmButton;
-//    private JButton cancelButton;
+    //    private JButton cancelButton;
     private JRadioButton integrationRadioButton;
     private JRadioButton unitRadioButton;
     private JCheckBox checkBox1;
@@ -115,19 +115,11 @@ public class TestCandidateSaveForm implements ComponentProvider {
         replayTestInfoLinkLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                String link = "https://read.unlogged.io/cirunner/";
-                if (Desktop.isDesktopSupported()) {
-                    try {
-                        java.awt.Desktop.getDesktop()
-                                .browse(java.net.URI.create(link));
-                    } catch (Exception e1) {
-                    }
-                } else {
-                    //no browser
-                }
+                BrowserRouteUtils.routeInBrowser("https://read.unlogged.io/cirunner/",
+                        "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from CLI/Maven/Gradle",
+                        "routeToDocumentation");
             }
         });
-
 
         Project project1 = saveFormListener.getProject();
         InsidiousService insidiousService = project1.getService(InsidiousService.class);

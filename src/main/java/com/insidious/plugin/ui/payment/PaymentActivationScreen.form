@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.payment.PaymentActivationScreen">
+  <grid id="27dc6" binding="mainPanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="16" left="12" bottom="16" right="12"/>
+    <constraints>
+      <xy x="20" y="20" width="500" height="400"/>
+    </constraints>
+    <properties>
+      <maximumSize width="400" height="340"/>
+      <minimumSize width="400" height="340"/>
+      <preferredSize width="400" height="340"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <grid id="8b4b8" binding="textPanel" layout-manager="GridLayoutManager" row-count="7" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="18a91" class="javax.swing.JLabel" binding="description">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="&lt;html&gt;&#10;Enter the product key we sent to your mail address, in the&lt;br/&gt;field below:&#10;&lt;/html&gt;"/>
+            </properties>
+          </component>
+          <component id="67b3" class="javax.swing.JLabel" binding="keyLabel">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="&lt;html&gt;Product key:&lt;/html&gt;"/>
+            </properties>
+          </component>
+          <component id="7baec" class="javax.swing.JLabel" binding="status">
+            <constraints>
+              <grid row="6" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value=""/>
+            </properties>
+          </component>
+          <vspacer id="76b48">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false">
+                <minimum-size width="-1" height="8"/>
+                <preferred-size width="-1" height="8"/>
+                <maximum-size width="-1" height="8"/>
+              </grid>
+            </constraints>
+          </vspacer>
+          <vspacer id="ae3d9">
+            <constraints>
+              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false">
+                <minimum-size width="-1" height="2"/>
+                <preferred-size width="-1" height="2"/>
+                <maximum-size width="-1" height="2"/>
+              </grid>
+            </constraints>
+          </vspacer>
+          <vspacer id="44a05">
+            <constraints>
+              <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false">
+                <minimum-size width="-1" height="2"/>
+                <preferred-size width="-1" height="2"/>
+                <maximum-size width="-1" height="2"/>
+              </grid>
+            </constraints>
+          </vspacer>
+          <scrollpane id="c57db" binding="keyAreaScroll">
+            <constraints>
+              <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <minimum-size width="-1" height="144"/>
+                <preferred-size width="-1" height="144"/>
+                <maximum-size width="-1" height="144"/>
+              </grid>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="5bded" class="javax.swing.JTextArea" binding="keyArea">
+                <constraints/>
+                <properties>
+                  <columns value="0"/>
+                  <lineWrap value="true"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+        </children>
+      </grid>
+      <grid id="30c73" binding="buttonPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="8" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="b251f" class="javax.swing.JButton" binding="payButton">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <background color="-13208592"/>
+              <borderPainted value="false"/>
+              <contentAreaFilled value="false"/>
+              <foreground color="-1"/>
+              <opaque value="true"/>
+              <text value="Pay for premium"/>
+            </properties>
+          </component>
+          <component id="240ac" class="javax.swing.JButton" binding="activateButton">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Activate Premium"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>
