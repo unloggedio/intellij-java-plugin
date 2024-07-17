@@ -11,6 +11,7 @@ import com.insidious.plugin.agent.*;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutoExecutorRunOptions;
 import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
@@ -589,6 +590,10 @@ final public class InsidiousService implements
         List<String> methodArgumentValues = selectedCandidate != null ? selectedCandidate.getMainMethod().getArguments()
                 .stream().map(e -> new String(e.getProb().getSerializedValue()))
                 .collect(Collectors.toList()) : null;
+        directInvokeComponent.renderForMethod(method,
+                methodArgumentValues);
+//        directInvokeComponent.triggerExecute();
+
         directInvokeComponent.renderForMethod(method, methodArgumentValues);
     }
 
@@ -1677,7 +1682,8 @@ final public class InsidiousService implements
         }
         addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
                 currentState.getSessionInstance().getProcessedFileCount(),
-                currentState.getSessionInstance().getTotalFileCount()));
+                currentState.getSessionInstance().getTotalFileCount(),
+                new ArrayList<>()));
     }
 
     public void addExecutionRecord(AutoExecutorReportRecord result) {
@@ -1787,10 +1793,6 @@ final public class InsidiousService implements
         }
     }
 
-    public void toggleReportGeneration() {
-        this.reportingService.toggleReportMode();
-    }
-
     public void setCodeCoverageHighlightEnabled(boolean state) {
         currentState.setCodeCoverageHighlightEnabled(state);
         highlightLines(currentState.getCurrentHighlightedRequest());
@@ -1866,8 +1868,8 @@ final public class InsidiousService implements
         return configurationState.isMockActive(declaredMock.getId());
     }
 
-    public void executeAllMethodsInCurrentClass() {
-        automaticExecutorService.executeAllJavaMethodsInProject();
+    public void executeAllMethodsInCurrentClass(AutoExecutorRunOptions options) {
+        automaticExecutorService.executeAllJavaMethodsInProject(options);
     }
 
     public void onAgentConnected(ServerMetadata serverMetadata) {
@@ -2401,7 +2403,10 @@ final public class InsidiousService implements
                 }
             }
         }
+    }
 
+    public void toggleReportGeneration() {
+        this.reportingService.toggleReportMode();
     }
 
     public void showSaveFrom(TestCandidateSaveForm saveFormReference) {

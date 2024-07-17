@@ -8,7 +8,7 @@
 // public class ReportingServiceTest {
 
 //     //test toggle mechanism
-//     @Test
+//     //@Test
 //     public void testToggle()
 //     {
 //         ReportingService service = new ReportingService(null);

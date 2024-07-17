@@ -9,6 +9,7 @@ public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigati
 
     @Override
     public void navigate(MouseEvent e, LeafPsiElement identifier) {
+
         return;
 //        KtNamedFunction method = (KtNamedFunction) identifier.getParent();
 //        KtClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),

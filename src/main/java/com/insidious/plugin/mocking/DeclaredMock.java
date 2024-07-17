@@ -133,6 +133,18 @@ public class DeclaredMock implements Comparable<DeclaredMock> {
     }
 
     @Override
+    public String toString() {
+        return "DeclaredMock{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", fieldTypeName='" + fieldTypeName + '\'' +
+                ", sourceClassName='" + sourceClassName + '\'' +
+                ", fieldName='" + fieldName + '\'' +
+                ", methodName='" + methodName + '\'' +
+                ", whenParameter=" + whenParameter +
+                ", thenParameter=" + thenParameter +
+                '}';
+    }
     public int compareTo(DeclaredMock o) {
         return this.id.compareTo(o.id);
     }

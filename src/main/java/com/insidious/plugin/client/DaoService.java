@@ -31,7 +31,7 @@ import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-
+import org.jetbrains.annotations.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;

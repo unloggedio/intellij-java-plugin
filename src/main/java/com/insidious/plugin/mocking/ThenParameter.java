@@ -37,6 +37,13 @@ public class ThenParameter {
     }
 
     @Override
+    public String toString() {
+        return "ThenParameter{" +
+                "returnParameter=" + returnParameter +
+                ", methodExitType=" + methodExitType +
+                '}';
+    }
+
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
