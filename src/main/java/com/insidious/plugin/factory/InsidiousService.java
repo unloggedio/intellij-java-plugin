@@ -1395,7 +1395,7 @@ final public class InsidiousService implements
     public void setSession(ExecutionSession mostRecentSession) {
 
         if (mostRecentSession.getSessionId().equals(lastCheckedSessionId)) {
-            logger.info("This session is already checked.");
+            logger.debug("This session is already checked. sessionId = " + mostRecentSession.getSessionId());
             return;
         }
         lastCheckedSessionId = mostRecentSession.getSessionId();
