@@ -175,6 +175,7 @@ final public class InsidiousService implements
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
     private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout());
+    private String lastCheckedSessionId = null;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -1392,6 +1393,12 @@ final public class InsidiousService implements
 
 
     public void setSession(ExecutionSession mostRecentSession) {
+
+        if (mostRecentSession.getSessionId().equals(lastCheckedSessionId)) {
+            logger.info("This session is already checked.");
+            return;
+        }
+        lastCheckedSessionId = mostRecentSession.getSessionId();
 
         ServerMetadata serverMetadata;
         if (currentState.getSessionInstance() == null) {
