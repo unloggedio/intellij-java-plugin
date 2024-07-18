@@ -1,5 +1,7 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.Constants;
+
 public class SemanticVersion {
     private final int major;
     private final int minor;
@@ -8,7 +10,7 @@ public class SemanticVersion {
     public SemanticVersion(String version) {
         String[] parts = version.split("\\.");
         if (parts.length != 3) {
-            throw new IllegalArgumentException("Version must be in the format x.y.z");
+            throw new IllegalArgumentException("Version must be in the format 'x.y.z'. SDK version being used is " + version + " and the latest version is " + Constants.AGENT_VERSION + ".");
         }
         this.major = Integer.parseInt(parts[0]);
         this.minor = Integer.parseInt(parts[1]);
