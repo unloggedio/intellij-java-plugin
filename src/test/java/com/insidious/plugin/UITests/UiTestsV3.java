@@ -9,10 +9,9 @@ import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.*;
 
-import java.awt.*;
-import java.awt.datatransfer.StringSelection;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.insidious.plugin.UITests.Utils.UITestUtils.*;
 import static com.insidious.plugin.UITests.Utils.UiTestInteractionUtils.*;
@@ -86,30 +85,117 @@ public class UiTestsV3 {
 
     @Test
     @Order(2)
+    //@Disabled
+    public void sdk_session_issues_96_and_97() {
+        int projectIndex = 0;
+
+        step("Start Project", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+        });
+
+        String sourceFileName = "SessionExceptions.java";
+        String jsonFileName = "DepartmentRepository.json";
+        AtomicBoolean failing = new AtomicBoolean(false);
+
+        step("Direct Invoke and the methods in SessionExceptions.", () -> {
+            openFileIfNeeded(sourceFileName, controller);
+            pause(ofSeconds(2).toMillis());
+
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+            pause(ofSeconds(2).toMillis());
+
+            List<GutterIcon> gutterIcons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            //execute and save each
+            int iconsSize = gutterIcons.size();
+            for (int i = 0; i < iconsSize; i++) {
+                GutterIcon icon = gutterIcons.get(i);
+                scrollToIcon(controller.getIdeaFrame().textEditor(), icon);
+                pause(ofMillis(250).toMillis());
+
+                icon.click();
+                pause(ofMillis(125).toMillis());
+
+                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                pause(ofSeconds(7).toMillis());
+
+                controller.getIdeaFrame().getBackToMenuButton().click();
+                controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                pause(ofSeconds(3).toMillis());
+
+                controller.getIdeaFrame().getFirstCheckbox().click();
+                controller.getIdeaFrame().getSaveGlobalButton().click();
+                pause(ofSeconds(3).toMillis());
+
+                controller.getIdeaFrame().getSaveFromConfirmButton().click();
+                pause(ofSeconds(2).toMillis());
+
+                //open and close terminal to reload from disk
+                controller.getIdeaFrame().getTerminalToolBarSelectable().click();
+                pause(ofSeconds(1).toMillis());
+                controller.getIdeaFrame().getTerminalToolBarSelectable().click();
+
+                openFileIfNeeded(jsonFileName, controller);
+
+                searchFirstInCurrentFile(controller, "failed to serialize object");
+                EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
+                String selection = editorFixture.getSelectedText();
+
+                if (!selection.equals("")) {
+                    System.out.println("Method : " + (i + 1) + ", Failed to serialize exception seen in saved mock.");
+                    failing.set(true);
+                }
+
+                openFileIfNeeded(sourceFileName, controller);
+                pause(ofSeconds(2).toMillis());
+                //reload icons after Each DirectInvoke
+                gutterIcons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            }
+        });
+
+        step("Stop and cleanup", () -> {
+            stopProcessInTerminal(controller);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
+        });
+
+        Assertions.assertFalse(failing.get());
+        if (failing.get()) {
+            System.out.println("Found a failed to serialize trace in saved mock value");
+        }
+    }
+
+    @Test
+    @Order(3)
+    //@Disabled
     public void vaildate_getPremiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(false);
     }
 
     @Test
-    @Order(3)
+    @Order(4)
+    //@Disabled
     public void vaildate_wrongKeyEntry() {
         validateKeyEntry(false);
     }
 
     @Test
-    @Order(4)
+    @Order(5)
+    //@Disabled
     public void vaildate_correctKeyEntry() {
         validateKeyEntry(true);
     }
 
     @Test
-    @Order(5)
+    @Order(6)
+    //@Disabled
     public void vaildate_premiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(true);
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     //@Disabled
     public void runnerFile_injection_test_maven_demo() {
         runnerFileInjectionAndAssertion();
@@ -117,7 +203,7 @@ public class UiTestsV3 {
 
     //remote mode start - start of remote chain tests for maven - demo
     @Test
-    @Order(7)
+    @Order(8)
     //@Disabled
     public void local_mode_frequencey_logging_Test() {
         //add to other files
@@ -337,7 +423,7 @@ public class UiTestsV3 {
 
     //remote mode start - start of remote chain tests for maven - demo
     @Test
-    @Order(8)
+    @Order(9)
     //@Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
@@ -423,7 +509,7 @@ public class UiTestsV3 {
 
     //remote mode start - debug DirectInvoke for this method
     @Test
-    @Order(9)
+    @Order(10)
     //@Disabled
     public void serverIssue_14() {
         int projectIndex = 0;
@@ -451,7 +537,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     //@Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
@@ -491,7 +577,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     //@Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
@@ -514,7 +600,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     //@Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
@@ -575,7 +661,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     //@Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
@@ -598,7 +684,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     //@Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
@@ -626,7 +712,7 @@ public class UiTestsV3 {
 
     //remote mode - ending case
     @Test
-    @Order(15)
+    @Order(16)
     //@Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
@@ -674,7 +760,7 @@ public class UiTestsV3 {
     //------------------------------
     //local mode start and sanity
     @Test
-    @Order(16)
+    @Order(17)
     //@Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
@@ -742,7 +828,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(17)
+    @Order(18)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
@@ -800,7 +886,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(18)
+    @Order(19)
     //@Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
@@ -818,7 +904,7 @@ public class UiTestsV3 {
 
     //Server Issues Sheet - Issue 73
     @Test
-    @Order(19)
+    @Order(20)
     //@Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
@@ -848,7 +934,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(20)
+    @Order(21)
     //@Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
@@ -886,7 +972,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(21)
+    @Order(22)
     //@Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
@@ -912,7 +998,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(22)
+    @Order(23)
     //@Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
@@ -939,7 +1025,7 @@ public class UiTestsV3 {
 
     //start in local mode - ending case
     @Test
-    @Order(23)
+    @Order(24)
     //@Disabled
     public void serverIssue_46() {
         //set filter to remote mode
@@ -987,7 +1073,7 @@ public class UiTestsV3 {
     //start in local mode
     //an ending case
     @Test
-    @Order(24)
+    @Order(25)
     //@Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
@@ -1057,7 +1143,7 @@ public class UiTestsV3 {
     //start in local mode
     //an ending case
     @Test
-    @Order(25)
+    @Order(26)
     //@Disabled
     public void serverIssue_37() {
         //set filter to remote mode
@@ -1124,7 +1210,7 @@ public class UiTestsV3 {
 
     //doesn't need project to start
     @Test
-    @Order(26)
+    @Order(27)
     //@Disabled
     public void serverIssues_23() {
         int switchCount = 10;
@@ -1151,7 +1237,7 @@ public class UiTestsV3 {
     //----------------------------
     //switch to gradle project
     @Test
-    @Order(27)
+    @Order(28)
     //@Disabled
     public void gradle_project_onboarding() {
         int projectIndex = 1;
@@ -1193,7 +1279,7 @@ public class UiTestsV3 {
 
 
     @Test
-    @Order(28)
+    @Order(29)
     //@Disabled
     public void runnerFile_injection_test_gradle_demo() {
         runnerFileInjectionAndAssertion();
@@ -1201,7 +1287,7 @@ public class UiTestsV3 {
 
 
     @Test
-    @Order(29)
+    @Order(30)
     //@Disabled
     public void remote_mode_general_gradle() {
         int projectIndex = 1;
@@ -1273,7 +1359,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(30)
+    @Order(31)
     //@Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
@@ -1339,7 +1425,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(31)
+    @Order(32)
     //@Disabled
     public void replayCaseSave_sanity_remote_gradle() {
 
@@ -1368,7 +1454,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(32)
+    @Order(33)
     //@Disabled
     public void run_mode_local_general_gradle() {
         int projectIndex = 1;
@@ -1435,7 +1521,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(33)
+    @Order(34)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
@@ -1500,7 +1586,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(34)
+    @Order(35)
     //@Disabled
     public void replayCaseSave_sanity_local_gradle() {
         step("Clear filter and selections", () -> {
@@ -1522,7 +1608,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(35)
+    @Order(36)
     //@Disabled
     public void close_LastProject() {
         step("Open readme file to prevent shortcut clash", () -> {
@@ -1535,7 +1621,7 @@ public class UiTestsV3 {
     //Add multimodule cases from multi-module-demo1
     //----------------
     @Test
-    @Order(36)
+    @Order(37)
     //@Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
@@ -1557,7 +1643,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(37)
+    @Order(38)
     //@Disabled
     public void multimodule_local_sanity_multimodule() {
         int projectIndex = 2;
@@ -1695,7 +1781,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(38)
+    @Order(39)
     //@Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
