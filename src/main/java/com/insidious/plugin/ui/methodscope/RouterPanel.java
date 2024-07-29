@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.MethodDisplayComponent;
+import com.insidious.plugin.ui.payment.AuthenticationService;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
 
@@ -30,7 +31,7 @@ public class RouterPanel implements ComponentProvider {
     private MethodAdapter method;
     private boolean miniMode;
 
-    public RouterPanel(RouterListener routerListener, InsidiousService insidiousService) {
+    public RouterPanel(RouterListener routerListener, InsidiousService insidiousService, AuthenticationService authenticationService) {
 
         setupInstructionsLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         setupInstructionsLabel.addMouseListener(new MouseAdapter() {
@@ -40,7 +41,7 @@ public class RouterPanel implements ComponentProvider {
             }
         });
 
-        methodDisplayComponent = new MethodDisplayComponent(insidiousService);
+        methodDisplayComponent = new MethodDisplayComponent(insidiousService, authenticationService);
         methodInfoContainer.add(methodDisplayComponent.getComponent(), BorderLayout.CENTER);
 
         loadTestLabel.setEnabled(false);
