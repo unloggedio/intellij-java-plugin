@@ -14,3 +14,8 @@ Available on [Jetbrains Plugin Marketplace](https://plugins.jetbrains.com/plugin
 - List executions at method level
 - Replay execution at method level
 - Mock downstream method calls
+
+# This is the testing branch
+
+- Has UI tests
+- Has Scan tests
