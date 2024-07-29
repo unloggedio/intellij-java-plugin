@@ -1,0 +1,350 @@
+package com.insidious.plugin.UITests.Utils;
+
+import com.insidious.plugin.UITests.UIElementNotFoundException;
+import com.insidious.plugin.UITests.wrapper.FilterOptions;
+import com.insidious.plugin.UITests.wrapper.GitProjectInfo;
+import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
+import com.intellij.remoterobot.RemoteRobot;
+import com.intellij.remoterobot.fixtures.ComponentFixture;
+import com.intellij.remoterobot.fixtures.ContainerFixture;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
+import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
+
+import java.util.List;
+
+import static com.intellij.remoterobot.search.locators.Locators.byXpath;
+import static java.awt.event.KeyEvent.*;
+import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
+import static org.assertj.swing.timing.Pause.pause;
+
+public class UITestUtils {
+
+    //These tag values can be fetched when you open localhost:8082 as you run with "runIdeForUiTests".
+    //The component will only show up in that page if it's currently visible in the Ui.
+    public enum UITags {
+        PROJECT_TREE_VIEW("//div[@class='ProjectViewTree']"),
+        PROJECT_NAV_ITEM("//div[contains(@text.key, 'project.scheme')]"),
+        UNLOGGED_TOOL_BAR_COMPONENT("//div[@text='Unlogged']"),
+        UNLOGGED_DIRECT_INVOKE_TAB_HEADER("//div[@text='Direct Invoke']"),
+        UNLOGGED_DIRECT_INVOKE_EXECUTE_BUTTON("//div[@class='JButton' and @text='Execute method']"),
+        DEBUG_BUTTON("//div[@myicon='startDebugger.svg']"),
+        ADD_ICON("//div[@accessiblename='Add' and @class='ActionButton' and @myaction='Add (null)']"),
+        CREATE_NEW_PROJECT("//div[(@class='MainButton' and @text='New Project') or (@accessiblename='New Project' and @class='JButton')]"),
+        OPEN_PROJECT("//div[@accessiblename.key='action.WelcomeScreen.OpenProject.text']"),
+        CREATE_FROM_VCS_OPTION("//div[@defaulticon='fromVCSTab.svg']"),
+        VCS_CREATE_URL_TEXT_FIELD("//div[@class='TextFieldWithHistory']"),
+        VCS_CREATE_CLONE_BUTTON("//div[@text='Clone']"),
+        MORE_ACTIONS("//div[@accessiblename='More Actions']"),
+        OPEN_PROJECT_TEXT_FIELD("//div[@class='BorderlessTextField']"),
+        EXPAND_ALL("//div[contains(@myaction.key, 'action.ExpandAll.text')]"),
+        STOP_BUTTON("//div[contains(@myaction.key, 'action.stop')]"),
+        HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
+        OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']"),
+        OK_BUTTON_GENERIC("//div[@text='OK']"),
+        LOCATE_FILE("//div[@tooltiptext.key='action.SelectOpenedFileInProjectView.text']"),
+        REPLAY_TAB("//div[@text='Replay']"),
+        REPLAY_EXECUTE_BUTTON("//div[@defaulticon='execute-button-outlined.svg']"),
+        SAVE_REPLAY_BUTTON("//div[@text='Save Replay']"),
+        SAVE_AND_CLOSE_SAVE_FORM("//div[@text='Save and close']"),
+        DIRECT_INVOKE_EXECUTE_NEW("//div[@visible_text='Execute Method']"),
+        JTEXT_FIELD("//div[@class='JTextField']"),
+        FILTER_BUTTON_NEW("//div[@visible_text='Filter']"),
+        FILTER_FOLLOW_CHECK_BOX("//div[@class='JTabbedPane']//div[@class='JCheckBox']"),
+        CHECK_BOX("//div[@class='JCheckBox']"),
+        FILTER_APPLY("//div[@text='Apply']"),
+        FILTER_CANCEL("//div[@text='Cancel']"),
+        SELECT_ALL_FILTER("//div[@visible_text='Select all']"),
+        SAVE_FORM_CONFIRM("//div[@text='Confirm']"),
+        SAVE_GLOBAL("//div[@visible_text='Save']"),
+        CLOSE_DI_COMPONENT_BUTTON("//div[@visible_text='Close']"),
+        REPLAY_CANDIDATE_BUTTON("//div[@myicon='replay-all-pink.svg']"),
+        LINK_MOCK_POPUP_BUTTON("//div[@myicon='link.svg']"),
+        ADD_NEW_MOCK_POPUP_BUTTON("//div[@myicon='add.svg']"),
+        UNLINK_MOCK_POPUP_BUTTON("//div[@visible_text='Un-Mock']"),
+        EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']"),
+        SAVE_MOCK_BUTTON("//div[@text='Save']"),
+        GIT_ROLLBACK_BUTTON("//div[@text='Rollback']"),
+        MULTI_MOCK_SINGL_LINE_PANEL("//div[@class='EngravedLabel']"),
+        EDIT_MOCK_ENTRY_BUTTON("//div[@myicon='edit.svg']"),
+        MOCK_POPUP_SCROLL_PANEL("//div[@class='JScrollPane'][.//div[@class='JCheckBox']]"),
+        MOCK_POPUP_CLOSE_ICON("//div[@tooltiptext='Close']"),
+        INJECT_POP_UP_CLOSE_ICON("//div[@tooltiptext='Close']"),
+        POP_UP_CLOSE_ICON("//div[@tooltiptext='Close']"),
+        TOOLBAR_REFRESH("//div[@myicon='refresh.svg']"),
+        TOOLBAR_DELETE_ICON("//div[@myicon='gc.svg']"),
+        JUNIT_TOP_TOOLBAR("//div[@myicon='tests.svg']"),
+        CONNECTED_STATE_LABEL("//div[@text='Connected']"),
+        DISCONNECTED_STATE_LABEL("//div[@text='Disconnected']"),
+        MOCK_EDIT_PANEL_RETURN_TYPE_SELECTOR("//div[@visible_text='Return']"),
+        MOCK_EDIT_RETURN_TYPE_NULL("//div[@text='Return null']"),
+        LIBRARY_HEADER_TAB("//div[@text='Library']"),
+        LIVE_HEADER_TAB("//div[@text='Live']"),
+        RADIO_BUTTON("//div[@class='JRadioButton']"),
+        LIBRARY_MOCKS_RADIO_BUTTON("//div[@visible_text='Mocks']]"),
+        MOCK_EDIT_RETURN_TYPE_EXCEPTION("//div[@text='Throw exception']"),
+        GOT_IT_TEXT("//div[@text='Got It']"),
+        TERMINAL_TOOLBAR_SELECTABLE("//div[@text='Terminal']"),
+        SHELL_WIDGET("//div[@class='ShellTerminalWidget']"),
+        TERMINAL_TOOL_WINDOW_HIDE_BUTTON("//div[@class='ToolWindowHeader'][.//div[@text='Terminal:']]//div[@tooltiptext='Hide']"),
+        CANCEL_MOCK_BUTTON("//div[@text='Cancel']"),
+        MAVEN_TOOLBAR_BUTTON("//div[@text='Maven']"),
+        GRADLE_TOOLBAR_BUTTON("//div[@text='Gradle']"),
+        MAVEN_REFRESH_SVG("//div[@myicon='refresh.svg']"),
+        MAVEN_TOOLBAR_HIDE("//div[contains(@myvisibleactions, '[Options')]//div[@tooltiptext='Hide']]"),
+        MY_CONTENT_PANEL("//div[@class='MyContentPanel']"),
+        FILTER_TITLE_PANEL("//div[@class='TitlePanel']"),
+        REMOTE_SERVER_RADIO_BUTTON_LABEL("//div[@accessiblename='Remote Server Scanning for logs on the server' and @class='JRadioButton' and @text='<html>Remote Server<br><small>Scanning for logs on the server<small></html>']"),
+        LOCALHOST_RADIO_BUTTON_LABEL("//div[@accessiblename='Localhost Logs on your local machine' and @class='JRadioButton' and @text='<html>Localhost<br><small>Logs on your local machine</small></html>']"),
+        SESSIONS_LIST_BUTTON("//div[@text='Check for sessions']"),
+        TREE("//div[@class='Tree']"),
+        TERMINAL_PANEL("//div[@class='JBTerminalPanel']"),
+        GIT_ROLLBACK_CHANGES_VIEWPORT("//div[@class='ChangesBrowserTreeList']"),
+        BOILERPLATE_TEST_DUMMY_DATA("//div[@visible_text='Boilerplate JUnit (dummy data)']"),
+        BOILERPLATE_TEST_REPLAY_DATA("//div[@accessiblename='Boilerplate JUnit (replay data)' and @class='JLabel' and @text='<html><u>Boilerplate JUnit (replay data)</u></html>']"),
+        BOILERPLATE_TEST_SAVE_BUTTON("//div[@myvisibleactions='[Preview (null), Save (null)]']//div[@visible_text='Save']"),
+        RUN_REPLAY_TEST_ICON("//div[@defaulticon='restart.svg']"),
+        INJECT_DROP_DOWN_ARROW("//div[@class='BasicArrowButton']"),
+        INJECT_FILE_BUTTON("//div[@text='Inject file']"),
+        METHOD_INSPECTOR_BACK_BUTTON("//div[@myicon='back.svg']"),
+        TOOLBAR_SELECT_ALL("//div[@myicon='selectall.svg']"),
+        FATAL_ERROR_READ_ICON("//div[@class='IdeErrorsIcon']"),
+        FATA_ERROR_MESSAGE_TAB("//div[@class='JTextArea']"),
+        FATAL_ERROR_NEXT_BUTTON("//div[@tooltiptext='Next']"),
+        LOCAL_HYPERLINK_FILTER("//div[@accessiblename='[Local]']"),
+        CLEAR_FILTERS_SHORTCUT("//div[@visible_text='Clear filters']"),
+        ADD_ICON_INSIDE_FILTER("//div[contains(@tooltiptext, 'Press')]//div[@myicon='add.svg']"),
+        CLEAR_FILTERS_LABEL("//div[@visible_text='Clear filters']"),
+        GIT_MENUBAR_OPTION("//div[@accessiblename='Git' and @class='ActionMenu' and @text='Git']"),
+        GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']"),
+        JDK_COMBO_BOX("//div[@class='JdkComboBox']"),
+        DOWNLOAD_BUTTON("//div[@text='Download']"),
+        BACK_BUTTON_OPTION("//div[@myicon='back.svg']"),
+        GET_FROM_VCS_V2("//div[@visible_text='Get from VCS']"),
+        MY_LIST("//div[@class='MyList']"),
+        TABBED_PANE("//div[@class='JTabbedPane']"),
+        MY_TREE_COMPONENT("//div[@class='MyTree']"),
+        NOTIFICATIONS_TAB("//div[@text='Notifications']"),
+        TEST_GENERATION_FALIED_INDEX_POPUP("//div[@accessiblename='Test Generation can start only after indexing is complete!' and @class='JEditorPane']"),
+        FILE_ALREADY_INJECTED_POPUP("//div[@visible_text_keys='root.type.extensions']"),
+        SDK_COMBO_BOX("//div[@class='SdkComboBox']"),
+        GRADLE_OPTIONS_BUILD_WITH("//div[@accessiblename='Build and run using:' and @class='ComboBox']"),
+        NOTIFICATIONS_CLEAR_ALL("//div[@text='Clear all']"),
+        GIT_LOGIN_USE_TOKEN("//div[@text='Use Token…']"),
+        GIT_PAT_LOGIN_BUTTON("//div[@text='Log In']"),
+        BACK_TO_MENU_BUTTON("//div[@text='Back to menu']"),
+        EDIT_ARGUMENTS_BUTTON("//div[@myicon='edit.svg']]"),
+        BUILD_TOOLBAR_BOTTOM("//div[@tooltiptext='Build']"),
+        FILTER_ON_TIMELINE_NAV("//div[@defaulticon='filter.svg']"),
+        GRADLE_REFRESH_ICON("//div[@tooltiptext='Reload All Gradle Projects']"),
+        CLEAR_SELECTIONS_CANSDIDATE("//div[@visible_text='Clear selection']"),
+        GET_PREMIUM_TEXT("//div[@visible_text='Get Premium!']"),
+        ACTIVATE_PREMIUM("//div[@text='Activate Premium']"),
+        KEY_ENTER_AREA("//div[@class='JViewport']//div[@class='JTextArea']"),
+        PREMIUM_USER_TEXT("//div[@visible_text='Premium User']"),
+        FIRST_FEATURE_IN_LIST("//div[@accessiblename='Get priority support']"),
+        WRONG_KEY_TEXT("//div[@text='Error - wrong product key ⚠']");
+
+        private String value;
+
+        UITags(String s) {
+            value = s;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+    }
+
+    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, UITags tag) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                return remoteRobot.find(ComponentFixture.class, byXpath(tag.toString()));
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Component with Tag : " + tag.name() + " not found on UI");
+    }
+
+    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, UITags tag) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                ContainerFixture result = remoteRobot.find(ContainerFixture.class, byXpath(tag.toString()));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Container with Tag : " + tag.name() + " not found on UI");
+    }
+
+    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, UITags tag) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                List<ComponentFixture> result = remoteRobot.findAll(ComponentFixture.class, byXpath(tag.toString()));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Components with Tag : " + tag.name() + " not found on UI");
+    }
+
+    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, String xpath) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                ComponentFixture result = remoteRobot.find(ComponentFixture.class, byXpath(xpath));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Component with XPATH : " + xpath + " not found on UI");
+    }
+
+    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, String xpath) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                List<ComponentFixture> result = remoteRobot.findAll(ComponentFixture.class, byXpath(xpath));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Components with XPATH : " + xpath + " not found on UI");
+    }
+
+    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, String xpath) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                ContainerFixture result = remoteRobot.find(ContainerFixture.class, byXpath(xpath));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Component with XPATH : " + xpath + " not found on UI");
+    }
+
+    public static void clearStompFilter(RemoteRobotController controller) {
+        try {
+            controller.getIdeaFrame().getClearFiltersLabel().click();
+        } catch (Exception e) {
+            //clear filters not visible
+        }
+    }
+
+    public static void clearStompSelections(RemoteRobotController controller) {
+        try {
+            controller.getIdeaFrame().getClearSelectionHyperlink().click();
+        } catch (Exception e) {
+            //clear selection not visible
+        }
+    }
+
+    public static void setFilterOptionsForCurrentView(RemoteRobotController controller, FilterOptions filterOptions) {
+        if (filterOptions.isClearFilters()) {
+            clearStompFilter(controller);
+        }
+
+        controller.getIdeaFrame().getFilterButton().click();
+        pause(ofMillis(500).toMillis());
+        List<ComponentFixture> fixtures = controller.getIdeaFrame().getAllAddIconComponents();
+        assert fixtures.size() == 4;
+
+        //set Included classes
+        filterOptions.getIncludedClasses().forEach(option -> {
+            fixtures.get(0).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        //set Excluded classes
+        filterOptions.getExcludedClasses().forEach(option -> {
+            fixtures.get(1).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        //set included methods
+        filterOptions.getIncludedMethods().forEach(option -> {
+            fixtures.get(2).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        //set excluded methods
+        filterOptions.getExcludedMethods().forEach(option -> {
+            fixtures.get(3).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+        controller.getIdeaFrame().getApplyButtonGeneric().click();
+    }
+
+    public static void setSdkVersion(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
+        System.out.println("Setting sdk version 1");
+        controller.getKeyboard().hotKey(VK_META, VK_SEMICOLON);
+        controller.getIdeaFrame().getJDKComboBox().click();
+
+        ComponentFixture myListFixture = controller.getIdeaFrame().getMyListComponent();
+        List<RemoteText> remoteTexts = myListFixture.getData().getAll();
+
+        pause(ofSeconds(7).toMillis());
+
+        RemoteText addNewOption = remoteTexts.stream().filter(text -> text.getText().equals("Add SDK")).toList().get(0);
+        addNewOption.moveMouse();
+        pause(ofSeconds(1).toMillis());
+
+        ComponentFixture addListOptions = controller.getIdeaFrame().getComponentByXpath("//div[contains(@visible_text, 'JDK...')]");
+        addListOptions.getData().getAll().get(0).click();
+        pause(ofSeconds(3).toMillis());
+
+        controller.getIdeaFrame().getComponentByXpath("//div[@class='ComboBox']").click();
+        pause(ofMillis(500).toMillis());
+        myListFixture = controller.getIdeaFrame().getMyListComponent();
+        List<RemoteText> javaVersions = myListFixture.getData().getAll();
+
+        RemoteText version17Text = javaVersions.stream().filter(elem -> elem.getText().equals(projectUnderTest.getJdkVersion())).toList().get(0);
+        version17Text.click();
+
+        pause(ofMillis(500).toMillis());
+        controller.getIdeaFrame().getDownloadButton().click();
+        controller.getIdeaFrame().getApplyButtonGeneric().click();
+        controller.getIdeaFrame().getOKButtonGeneric().click();
+        System.out.println("Setting sdk version done");
+    }
+}

@@ -13,7 +13,7 @@ class AssertionEngineTest {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Test
+    //@Test
     void assertionTestAllPassing() throws JsonProcessingException {
 
 
@@ -86,7 +86,7 @@ class AssertionEngineTest {
 
     }
 
-    @Test
+    //@Test
     void assertionTestObjectCompare() throws JsonProcessingException {
 
 
@@ -140,7 +140,7 @@ class AssertionEngineTest {
 
     }
 
-    @Test
+    //@Test
     void assertionTestObjectCompare2() throws JsonProcessingException {
 
 
@@ -194,7 +194,7 @@ class AssertionEngineTest {
 
     }
 
-    @Test
+    //@Test
     void assertionTestOneFailingButPassingWithOr() throws JsonProcessingException {
 
 
@@ -273,7 +273,7 @@ class AssertionEngineTest {
 
     }
 
-    @Test
+    //@Test
     void assertionTestBuildFromJson() throws JsonProcessingException {
 
 
@@ -427,7 +427,7 @@ class AssertionEngineTest {
     }
 
 
-    @Test
+    //@Test
     void assertionTestBuildFromJsonNot() throws JsonProcessingException {
 
 

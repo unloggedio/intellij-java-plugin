@@ -3,6 +3,8 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.ui.methodscope.RouterPanel;
+import com.insidious.plugin.ui.payment.AuthenticationService;
+import com.insidious.plugin.ui.payment.PremiumAdBanner;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -13,12 +15,24 @@ import java.awt.*;
 
 public class ContainerPanel extends JPanel {
     private StompComponent stompComponent;
+    private PremiumAdBanner adBanner;
     private RouterPanel routerPanel;
     private ComponentProvider currentContent;
     private JPanel container;
+    private final AuthenticationService authenticationService;
 
-    public ContainerPanel(LayoutManager layoutManager) {
+    public ContainerPanel(LayoutManager layoutManager, PremiumAdBanner premiumAdBanner, AuthenticationService authenticationService) {
         super(layoutManager);
+        this.adBanner = premiumAdBanner;
+        this.authenticationService = authenticationService;
+        initializePremiumAdBanner();
+
+    }
+
+    private void initializePremiumAdBanner() {
+        add(adBanner.getMainPanel(), BorderLayout.NORTH);
+        adBanner.setPremiumUserFlag(authenticationService.isTokenValid());
+        revalidate();
     }
 
     public void setStompComponent(StompComponent stompComponent, RouterPanel routerPanel) {
@@ -26,9 +40,16 @@ public class ContainerPanel extends JPanel {
         container = new JPanel(new GridLayout());
         this.stompComponent = stompComponent;
         this.routerPanel = routerPanel;
-        add(routerPanel.getComponent(), BorderLayout.NORTH);
-        add(container, BorderLayout.CENTER);
-        add(new JSeparator(), BorderLayout.SOUTH);
+        JPanel childPanel = new JPanel(new BorderLayout());
+        childPanel.add(routerPanel.getComponent(), BorderLayout.NORTH);
+        childPanel.add(container, BorderLayout.CENTER);
+        childPanel.add(new JSeparator(), BorderLayout.SOUTH);
+        add(childPanel, BorderLayout.CENTER);
+    }
+
+    public void makeAdBannerPremium() {
+        adBanner.setPremiumUserFlag(true);
+        revalidate();
     }
 
     private GridBagConstraints createGBCForFakeComponent() {
@@ -60,6 +81,7 @@ public class ContainerPanel extends JPanel {
     public synchronized void setViewport(ComponentProvider content) {
         ApplicationManager.getApplication().invokeLater(() -> {
             container.removeAll();
+            initializePremiumAdBanner();
             if (content == null) {
                 routerPanel.setMiniMode(false);
             } else {

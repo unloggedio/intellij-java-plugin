@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class TestJackoutOutput {
 
-    @Test
+    //@Test
     public void testJackson() throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
 

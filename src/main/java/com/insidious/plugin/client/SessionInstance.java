@@ -62,6 +62,7 @@ import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -3435,6 +3436,11 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                     if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = eventValue != 0;
+                    }
+                    if (existingParameter.getType()  != null
+                     && existingParameter.getType().contains("Mono")) {
+                        long longValue = ByteBuffer.wrap(eventBlock.serializedData()).getLong();
+
                     }
 
                     if (existingParameter.getType() == null && incomingMethodParameters.size() > 0) {

@@ -6,7 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class AutoExecutionRecordQueue {
     private final LinkedBlockingQueue<AutoExecutorReportRecord> queue = new LinkedBlockingQueue<>();
-    private final int maxSize = 500;
+    private final int maxSize = 8000;
     private final Object IS_NOT_FULL = new Object();
     private final Object IS_NOT_EMPTY = new Object();
 

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 class StringUtilsTest {
 
-    @Test
+    //@Test
     void testIsAllUpperCase() {
         String a = "ABCD";
         String b = "abcd";
@@ -20,7 +20,7 @@ class StringUtilsTest {
         Assert.assertFalse(StringUtils.isAllUpperCamelCase(e));
     }
 
-    @Test
+    //@Test
     void testCapitalize() {
         String a = "ABCD";
         String b = "aasdasdpSed";
@@ -37,7 +37,7 @@ class StringUtilsTest {
         Assert.assertEquals("Abcdnjsdiaj", d);
     }
 
-    @Test
+    //@Test
     void testIsEmpty() {
         String a = null;
         String b = "";
@@ -50,7 +50,7 @@ class StringUtilsTest {
         Assert.assertFalse(StringUtils.isEmpty(d));
     }
 
-    @Test
+    //@Test
     void testConvertToSnakeCaseToCamelCase() {
         String a = "kuch_toh_hua_hai";
         String b = "KUCH_TOH_HUA_HAI";

@@ -55,6 +55,7 @@ public class StompFilter {
     private JButton cancelButton;
     private JButton resetToDefaultButton;
     private JPanel sourcePreferencesPanel;
+    private JPanel followCheckBoxParent;
     //    private JRadioButton localhostRadio;
 //    private JRadioButton remoteRadio;
 //    private JPanel sourceModeOption;

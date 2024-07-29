@@ -501,7 +501,8 @@ public class MethodDirectInvokeComponent
                         diffResult.setCommand(agentCommandRequest);
                         insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
                                 insidiousService.getSessionInstance().getProcessedFileCount(),
-                                insidiousService.getSessionInstance().getTotalFileCount()));
+                                insidiousService.getSessionInstance().getTotalFileCount(),
+                                new ArrayList<>()));
                     });
                 });
     }
