@@ -143,7 +143,8 @@ public class UITestUtils {
         KEY_ENTER_AREA("//div[@class='JViewport']//div[@class='JTextArea']"),
         PREMIUM_USER_TEXT("//div[@visible_text='Premium User']"),
         FIRST_FEATURE_IN_LIST("//div[@accessiblename='Get priority support']"),
-        WRONG_KEY_TEXT("//div[@text='Error - wrong product key ⚠']");
+        WRONG_KEY_TEXT("//div[@text='Error - wrong product key ⚠']"),
+        BUILD_SYNC_CLOSE("//div[@class='ContentTabLabel']");
 
         private String value;
 

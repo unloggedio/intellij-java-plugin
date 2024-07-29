@@ -12,6 +12,7 @@ import com.intellij.remoterobot.utils.Locators;
 import org.assertj.swing.fixture.JComboBoxFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
+
 import java.awt.*;
 
 import static java.time.Duration.*;
@@ -39,6 +40,12 @@ public class UiTestInteractionUtils {
     public static void addUnloggedToStartFile(RemoteRobotController controller, String filename, String annotationText, boolean openFile) {
         if (openFile) {
             openFileIfNeeded(filename, controller);
+        }
+        //close build tab if needed
+        try {
+            controller.getIdeaFrame().getCloseBuildTabContent().click();
+        } catch (Exception e) {
+
         }
         TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
         try {

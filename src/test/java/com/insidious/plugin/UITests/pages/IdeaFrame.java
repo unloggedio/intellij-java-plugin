@@ -4,6 +4,7 @@ import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -499,5 +500,9 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public List<ComponentFixture> getFileAlreadyInjectedBalloonNotification() {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.FILE_ALREADY_INJECTED_POPUP);
+    }
+
+    public ComponentFixture getCloseBuildTabContent() {
+        return UITestUtils.getComponentFixture(remoteRobot,UITestUtils.UITags.BUILD_SYNC_CLOSE);
     }
 }
