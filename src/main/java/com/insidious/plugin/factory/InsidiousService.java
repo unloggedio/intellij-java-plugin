@@ -234,7 +234,7 @@ final public class InsidiousService implements
             @Override
             public synchronized void success(List<ExecutionSession> executionSessionList) {
                 if (executionSessionList.size() > 1) {
-                    executionSessionList.sort(Comparator.comparing(ExecutionSession::getSessionId));
+                    executionSessionList.sort(Comparator.comparing(ExecutionSession::getTimestampInUTC));
                     logger.debug("Session list after sort by session id: " + executionSessionList);
                     Collections.reverse(executionSessionList);
                     logger.debug("Session list after reverse: " + executionSessionList);
