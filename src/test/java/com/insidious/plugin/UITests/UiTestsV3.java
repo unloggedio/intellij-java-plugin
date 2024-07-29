@@ -32,7 +32,7 @@ public class UiTestsV3 {
         controller = new RemoteRobotController(remoteRobot, keyboard);
 
         LocalProjectInfo mavenDemoLocal = new LocalProjectInfo("unlogged-spring-maven-demo", "start_project.sh",
-                "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "UnloggedDemoApplication.java", 30);
+                "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "UnloggedDemoApplication.java", 60);
 
         GitProjectInfo mavenDemo = new GitProjectInfo("unlogged-spring-maven-demo",
                 "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
