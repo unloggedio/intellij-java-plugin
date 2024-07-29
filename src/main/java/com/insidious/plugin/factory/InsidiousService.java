@@ -178,10 +178,11 @@ final public class InsidiousService implements
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
-    private final PremiumAdBanner liveViewPremiumBanner = new PremiumAdBanner(this, "live");
-    private final PremiumAdBanner libraryPremiumBanner = new PremiumAdBanner(this, "library");
-    private final ContainerPanel containerPanel;
-    Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
+	private String lastCheckedSessionId = null;
+	private final PremiumAdBanner liveViewPremiumBanner = new PremiumAdBanner(this, "live");
+	private final PremiumAdBanner libraryPremiumBanner = new PremiumAdBanner(this, "library");
+	private final ContainerPanel containerPanel;    
+	Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
     private UnloggedClientInterface client;
@@ -234,7 +235,7 @@ final public class InsidiousService implements
             @Override
             public synchronized void success(List<ExecutionSession> executionSessionList) {
                 if (executionSessionList.size() > 1) {
-                    executionSessionList.sort(Comparator.comparing(ExecutionSession::getSessionId));
+                    executionSessionList.sort(Comparator.comparing(ExecutionSession::getTimestampInUTC));
                     logger.debug("Session list after sort by session id: " + executionSessionList);
                     Collections.reverse(executionSessionList);
                     logger.debug("Session list after reverse: " + executionSessionList);
@@ -1405,6 +1406,12 @@ final public class InsidiousService implements
 
 
     public void setSession(ExecutionSession mostRecentSession) {
+
+        if (mostRecentSession.getSessionId().equals(lastCheckedSessionId)) {
+            logger.debug("This session is already checked. sessionId = " + mostRecentSession.getSessionId());
+            return;
+        }
+        lastCheckedSessionId = mostRecentSession.getSessionId();
 
         ServerMetadata serverMetadata;
         if (currentState.getSessionInstance() == null) {
