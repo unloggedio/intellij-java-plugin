@@ -5,6 +5,7 @@ import static com.insidious.plugin.Constants.AGENT_VERSION;
 public class TestConstants {
     public static final String REMOTE_URL = "http://localhost:8123";
     public static final String DEFAULT_PRE_POPULATED_URL = "http://unlogged.local:8123";
+    public static final String GITHUB_PAT = System.getenv("GITHUB_PAT_ENV");
     public static final String VALID_LICENSE_KEY = System.getenv("VALID_LICENSE_KEY_ENV");
     public static String MAVEN_DEPENDENCY_TEMPLATE = "<dependency>\n" +
             "  <artifactId>unlogged-sdk</artifactId>\n" +

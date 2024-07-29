@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.insidious.plugin.UITests.Utils.UITestUtils.*;
 import static com.insidious.plugin.UITests.Utils.UiTestInteractionUtils.*;
+import static com.insidious.plugin.UITests.wrapper.TestConstants.GITHUB_PAT;
 import static com.insidious.plugin.UITests.wrapper.TestConstants.VALID_LICENSE_KEY;
 import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
@@ -58,7 +59,7 @@ public class UiTestsV3 {
         LocalProjectInfo multiModuleDemo = new LocalProjectInfo("multimodule-demo-1", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "CustomerApplication.java", 30);
         multimoduleDemo.setLocalProjectInfo(multiModuleDemo);
-        multimoduleDemo.setLoginOptions(new GitLoginOptions("Your Personal access token here")); //your git personal access token here
+        multimoduleDemo.setLoginOptions(new GitLoginOptions(GITHUB_PAT));
         projectsToTest.add(multimoduleDemo);
     }
 
