@@ -170,21 +170,21 @@ public class UiTestsV3 {
     @Test
     @Order(3)
     //@Disabled
-    public void vaildate_getPremiumBannerAcrossScreens() {
+    public void validateGetPremiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(false);
     }
 
     @Test
     @Order(4)
     //@Disabled
-    public void vaildate_wrongKeyEntry() {
+    public void validateWrongKeyEntry() {
         validateKeyEntry(false);
     }
 
     @Test
     @Order(5)
     //@Disabled
-    public void vaildate_correctKeyEntry() {
+    public void validateCorrectKeyEntry() {
         validateKeyEntry(true);
     }
 
