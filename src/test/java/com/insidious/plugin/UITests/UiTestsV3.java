@@ -90,7 +90,13 @@ public class UiTestsV3 {
     public void sdk_session_issues_96_and_97() {
         int projectIndex = 0;
 
-        step("Start Project", () -> {
+        final String annotationText = "@Unlogged(port=12100)";
+
+        step("Add annotation", () -> {
+            addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true);
+        });
+
+        step("Start project", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
