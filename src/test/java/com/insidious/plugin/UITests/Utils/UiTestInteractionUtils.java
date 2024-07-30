@@ -37,7 +37,7 @@ public class UiTestInteractionUtils {
         gotItTexts.forEach(text -> text.click());
     }
 
-    public static void addUnloggedToStartFile(RemoteRobotController controller, String filename, String annotationText, boolean openFile) {
+    public static void addUnloggedToStartFile(RemoteRobotController controller, String filename, String annotationText, boolean openFile, int lineCount) {
         if (openFile) {
             openFileIfNeeded(filename, controller);
         }
@@ -60,16 +60,20 @@ public class UiTestInteractionUtils {
         controller.getKeyboard().hotKey(VK_RIGHT);
         controller.getKeyboard().hotKey(VK_ENTER);
         controller.getKeyboard().enterText("import io.unlogged.Unlogged;");
+        controller.getKeyboard().hotKey(VK_RIGHT);
 
         //refresh contents post text addition
-        mainClassContents = textEditorFixture.getEditor().getData().getAll();
-        RemoteText mainLabel = mainClassContents.stream().filter(text -> text.getText().equals("main")).toList().get(0);
-        int mainLabelIndex = mainClassContents.indexOf(mainLabel);
-        RemoteText publicMethodLabel = getFirstPublicKeywordOnLeft(mainClassContents, mainLabelIndex);
-        if (publicMethodLabel == null) {
-            Assertions.fail("Main class is not valid");
+//        mainClassContents = textEditorFixture.getEditor().getData().getAll();
+//        RemoteText mainLabel = mainClassContents.stream().filter(text -> text.getText().equals("main")).toList().get(0);
+//        int mainLabelIndex = mainClassContents.indexOf(mainLabel);
+//        RemoteText publicMethodLabel = getFirstPublicKeywordOnLeft(mainClassContents, mainLabelIndex);
+//        if (publicMethodLabel == null) {
+//            Assertions.fail("Main class is not valid");
+//        }
+//        publicMethodLabel.click();
+        for (int i=0;i<=lineCount-1;i++) {
+            controller.getKeyboard().hotKey(VK_DOWN);
         }
-        publicMethodLabel.click();
         controller.getKeyboard().hotKey(VK_ENTER);
         controller.getKeyboard().enterText(annotationText);
         controller.getKeyboard().hotKey(VK_ENTER);
