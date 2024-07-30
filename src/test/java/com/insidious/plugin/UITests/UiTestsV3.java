@@ -218,43 +218,6 @@ public class UiTestsV3 {
         final int classCounter = 3;
         final int methodCounter = 1;
 
-        final String annotationText = "@Unlogged(counter=\"" + processCounter + "\")";
-        final String classAnnotationText = "@UnloggedClass(counter=\"" + classCounter + "\")";
-        final String methodAnnotationText = "@UnloggedMethod(counter=\"" + methodCounter + "\")";
-
-        final String unloggedClassImport = "import io.unlogged.UnloggedClass;";
-        final String unloggedMethodImport = "import io.unlogged.UnloggedMethod;";
-
-        step("Add counters for class level and method level", () -> {
-            openFileIfNeeded("FutureController.java", controller);
-            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
-
-            RemoteText firstSemiColon = controller.getIdeaFrame().textEditor().getEditor().getData().getAll().stream()
-                    .filter(text -> text.getText().equals(";")).findFirst().get();
-            firstSemiColon.click();
-            controller.getKeyboard().hotKey(VK_RIGHT);
-            controller.getKeyboard().hotKey(VK_ENTER);
-
-            controller.getKeyboard().enterText(unloggedClassImport);
-            controller.getKeyboard().hotKey(VK_ENTER);
-            controller.getKeyboard().enterText(unloggedMethodImport);
-
-            controller.getIdeaFrame().getBuildToolbarIcon().click();
-
-            List<RemoteText> publicKeywords = controller.getIdeaFrame().textEditor().getEditor().getData().getAll().stream().filter(text -> text.getText().equals("public")).toList();
-            assert publicKeywords.size() == 4;
-
-            publicKeywords.get(0).click();
-            controller.getKeyboard().hotKey(VK_LEFT);
-            controller.getKeyboard().enterText(classAnnotationText);
-
-            publicKeywords.get(2).click();
-            controller.getKeyboard().hotKey(VK_LEFT);
-            controller.getKeyboard().enterText(methodAnnotationText);
-            controller.getKeyboard().hotKey(VK_ENTER);
-
-        });
-
         final String annotationText = "@Unlogged(port=12100, counter=\"" + processCounter + "\")";
         step("Add annotation and start project", () -> {
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
