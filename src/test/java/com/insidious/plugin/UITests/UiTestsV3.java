@@ -197,7 +197,7 @@ public class UiTestsV3 {
     @Test
     @Order(6)
     //@Disabled
-    public void vaildate_premiumBannerAcrossScreens() {
+    public void validatePremiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(true);
     }
 
@@ -208,11 +208,10 @@ public class UiTestsV3 {
         runnerFileInjectionAndAssertion();
     }
 
-    //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(8)
     //@Disabled
-    public void local_mode_frequencey_logging_Test() {
+    public void localModeFrequencyLoggingTest() {
         //add to other files
         int projectIndex = 0;
         final int processCounter = 4;
