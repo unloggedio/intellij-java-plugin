@@ -38,7 +38,7 @@ public class UiTestsV3 {
         GitProjectInfo mavenDemo = new GitProjectInfo("unlogged-spring-maven-demo",
                 "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
                 "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 30,
-                true, "17", "src/test/java/org/unlogged/demo");
+                true, "17", "src/test/java/org/unlogged/demo", 15);
         mavenDemo.setLocalProjectInfo(mavenDemoLocal);
 
         projectsToTest.add(mavenDemo);
@@ -46,7 +46,7 @@ public class UiTestsV3 {
         GitProjectInfo gradleDemo = new GitProjectInfo("unlogged-spring-gradle-demo",
                 "https://github.com/unloggedio/unlogged-spring-gradle-demo.git",
                 "ui_test_clean", "build.gradle", LocalProjectInfo.BuildSystem.GRADLE, 30,
-                true, "17", "src/test/java/org/unlogged/demo");
+                true, "17", "src/test/java/org/unlogged/demo", 10);
         LocalProjectInfo gradleDemoLocal = new LocalProjectInfo("unlogged-spring-gradle-demo", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "Application.java", 30);
         gradleDemo.setLocalProjectInfo(gradleDemoLocal);
@@ -55,7 +55,7 @@ public class UiTestsV3 {
         GitProjectInfo multimoduleDemo = new GitProjectInfo("multimodule-demo-1",
                 "https://github.com/unloggedio/multimodule-demo-1.git",
                 "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 30,
-                true, "11", "src/test/java/org/unlogged/demo");
+                true, "11", "src/test/java/org/unlogged/demo", 15);
         LocalProjectInfo multiModuleDemo = new LocalProjectInfo("multimodule-demo-1", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "CustomerApplication.java", 30);
         multimoduleDemo.setLocalProjectInfo(multiModuleDemo);

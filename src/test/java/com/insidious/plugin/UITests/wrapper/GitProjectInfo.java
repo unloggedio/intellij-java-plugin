@@ -12,8 +12,9 @@ public class GitProjectInfo {
     private String testBasePath;
     private LocalProjectInfo localProjectInfo;
     private GitLoginOptions loginOptions;
+    private int lineCount;
 
-    public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion, String testBasePath) {
+    public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion, String testBasePath, int lineCount) {
         this.projectName = projectName;
         this.gitUrl = gitUrl;
         this.gitBranch = gitBranch;
@@ -23,6 +24,7 @@ public class GitProjectInfo {
         this.switchBranchOnOpen = switchBranchOnOpen;
         this.jdkVersion = jdkVersion;
         this.testBasePath = testBasePath;
+        this.lineCount = lineCount;
     }
 
     public String getProjectName() {
@@ -111,5 +113,13 @@ public class GitProjectInfo {
 
     public void setLoginOptions(GitLoginOptions loginOptions) {
         this.loginOptions = loginOptions;
+    }
+
+    public void setLineCount(int lineCount) {
+        this.lineCount = lineCount;
+    }
+
+    public int getLineCount() {
+        return this.lineCount;
     }
 }
