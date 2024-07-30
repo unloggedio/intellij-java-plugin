@@ -228,10 +228,9 @@ public class UiTestsV3 {
             openUnloggedToolbarIfNotOpen(controller, 2);
         });
 
-        step("DirectInvoke and assert methods from FutureController", () -> {
-
+        step("DirectInvoke and assert methods from FutureControllerFrequencyLogging", () -> {
             step("Open file", () -> {
-                openFileIfNeeded("FutureController.java", controller);
+                openFileIfNeeded("FutureControllerFrequencyLogging.java", controller);
                 pause(ofSeconds(2).toMillis());
             });
 
