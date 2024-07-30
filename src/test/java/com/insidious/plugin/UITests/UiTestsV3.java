@@ -255,6 +255,7 @@ public class UiTestsV3 {
 
         });
 
+        final String annotationText = "@Unlogged(port=12100, counter=\"" + processCounter + "\")";
         step("Add annotation and start project", () -> {
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
@@ -433,7 +434,7 @@ public class UiTestsV3 {
     //@Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
-        final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
+        final String annotationText = "@Unlogged(port=12100, serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
 
         closeAndRevert();
 
@@ -770,7 +771,7 @@ public class UiTestsV3 {
     //@Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
-        final String annotationText = "@Unlogged";
+        final String annotationText = "@Unlogged(port=12100)";
 
         step("Add annotation and start project", () -> {
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
