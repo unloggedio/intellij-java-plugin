@@ -221,6 +221,7 @@ public class UiTestsV3 {
 
         final String annotationText = "@Unlogged(port=12100, counter=\"" + processCounter + "\")";
         step("Add annotation and start project", () -> {
+            openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
