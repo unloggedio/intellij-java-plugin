@@ -162,7 +162,8 @@ public class UiTestsV3 {
         });
 
         step("Stop and cleanup", () -> {
-            stopProcessInTerminal(controller);
+//            stopProcessInTerminal(controller);
+            executeShellScriptAndWait(controller, "kill_process.sh", 2);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
         });
@@ -377,16 +378,13 @@ public class UiTestsV3 {
             });
         });
 
-        closeAndRevert();
-    }
-
-    private void closeAndRevert() {
         step("Stop running process", () -> {
-            stopProcessInTerminal(controller);
+//            stopProcessInTerminal(controller);
+            executeShellScriptAndWait(controller, "kill_process.sh", 2);
         });
 
         step("Revert futureController", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile("FutureController.java", controller);
+            UiTestInteractionUtils.openAndRevertGitChangesForFile("FutureControllerFrequencyLogging.java", controller);
         });
     }
 
@@ -398,7 +396,14 @@ public class UiTestsV3 {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(port=12100, serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
 
-        closeAndRevert();
+        step("Stop running process", () -> {
+//            stopProcessInTerminal(controller);
+            executeShellScriptAndWait(controller, "kill_process.sh", 2);
+        });
+
+//        step("Revert futureController", () -> {
+//            UiTestInteractionUtils.openAndRevertGitChangesForFile("FutureController.java", controller);
+//        });
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
@@ -722,7 +727,8 @@ public class UiTestsV3 {
         });
 
         step("Stop running process", () -> {
-            stopProcessInTerminal(controller);
+//            stopProcessInTerminal(controller);
+            executeShellScriptAndWait(controller, "kill_process.sh", 2);
         });
     }
 
@@ -1172,7 +1178,8 @@ public class UiTestsV3 {
         });
 
         step("stop running process", () -> {
-            stopProcessInTerminal(controller);
+//            stopProcessInTerminal(controller);
+            executeShellScriptAndWait(controller, "kill_process.sh", 2);
         });
 
     }
