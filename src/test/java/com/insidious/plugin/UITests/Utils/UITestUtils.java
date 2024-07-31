@@ -319,12 +319,9 @@ public class UITestUtils {
 
     public static void setSdkVersion(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
         System.out.println("Setting sdk version");
-        if(controller.getOperatingSystem().equals(RemoteRobotController.OperatingSystem.WINDOWS))
-        {
+        if (controller.isWindows()) {
             controller.getKeyboard().hotKey(VK_CONTROL, VK_ALT, VK_SHIFT, VK_S);
-        }
-        else if(controller.getOperatingSystem().equals(RemoteRobotController.OperatingSystem.MAC))
-        {
+        } else if (controller.isMac()) {
             controller.getKeyboard().hotKey(VK_META, VK_SEMICOLON);
         }
         controller.getIdeaFrame().getJDKComboBox().click();
