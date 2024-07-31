@@ -13,6 +13,7 @@ public class GitProjectInfo {
     private LocalProjectInfo localProjectInfo;
     private GitLoginOptions loginOptions;
     private int lineCount;
+    private WindowsScripts windowsScripts;
 
     public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion, String testBasePath, int lineCount) {
         this.projectName = projectName;
@@ -121,5 +122,13 @@ public class GitProjectInfo {
 
     public int getLineCount() {
         return this.lineCount;
+    }
+
+    public WindowsScripts getWindowsScripts() {
+        return windowsScripts;
+    }
+
+    public void setWindowsScripts(WindowsScripts windowsScripts) {
+        this.windowsScripts = windowsScripts;
     }
 }

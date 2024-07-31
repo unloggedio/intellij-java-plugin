@@ -8,17 +8,12 @@ import com.insidious.plugin.UITests.wrapper.JunitGenerationRequest;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
-import com.intellij.remoterobot.utils.Locators;
-import org.assertj.swing.fixture.JComboBoxFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
-
-import java.awt.*;
 
 import static java.time.Duration.*;
 
 import java.awt.datatransfer.StringSelection;
-import java.rmi.Remote;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -27,7 +22,6 @@ import java.util.*;
 import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
 import static java.awt.event.KeyEvent.*;
 import static java.awt.event.KeyEvent.VK_A;
-import static java.time.Duration.*;
 import static org.assertj.swing.timing.Pause.pause;
 
 public class UiTestInteractionUtils {
@@ -58,6 +52,10 @@ public class UiTestInteractionUtils {
         RemoteText firstSemicolon = mainClassContents.stream().filter(text -> text.getText().equals(";")).toList().get(0);
         firstSemicolon.click();
         controller.getKeyboard().hotKey(VK_RIGHT);
+        if (controller.isWindows()) {
+            //adjust offset for windows
+            controller.getKeyboard().hotKey(VK_RIGHT);
+        }
         controller.getKeyboard().hotKey(VK_ENTER);
         controller.getKeyboard().enterText("import io.unlogged.Unlogged;");
         controller.getKeyboard().hotKey(VK_RIGHT);
@@ -71,7 +69,10 @@ public class UiTestInteractionUtils {
 //            Assertions.fail("Main class is not valid");
 //        }
 //        publicMethodLabel.click();
-        for (int i=0;i<=lineCount-1;i++) {
+        if (controller.isWindows()) {
+            lineCount--;
+        }
+        for (int i = 0; i <= lineCount - 1; i++) {
             controller.getKeyboard().hotKey(VK_DOWN);
         }
         controller.getKeyboard().hotKey(VK_ENTER);
@@ -157,7 +158,11 @@ public class UiTestInteractionUtils {
         } catch (Exception e) {
         }
 
-        controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
+        if (controller.isMac()) {
+            controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
+        } else if (controller.isWindows()) {
+            controller.getKeyboard().hotKey(VK_CONTROL, VK_SHIFT, VK_N);
+        }
         pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(filename);
         pause(ofMillis(250).toMillis());
@@ -165,7 +170,7 @@ public class UiTestInteractionUtils {
     }
 
     public static void searchFirstInCurrentFile(RemoteRobotController controller, String identifier) {
-        controller.getKeyboard().hotKey(VK_META, VK_F);
+        controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_F);
         controller.getKeyboard().enterText(identifier);
         controller.getKeyboard().hotKey(VK_ENTER);
     }
@@ -481,22 +486,36 @@ public class UiTestInteractionUtils {
         backToMenuIfOpen(controller);
     }
 
-    public static void executeDeterministicShellCommand(RemoteRobotController controller, String command,
-                                                        int waitDurationInSeconds) {
+    public static void executeDeterministicTerminalCommand(RemoteRobotController controller, String command,
+                                                           int endWaitDuration, List<TerminalCommandOption> terminalCommandOptionList) {
         controller.getIdeaFrame().getTerminalToolBarSelectable().click();
         pause(ofSeconds(10).toMillis());
 
         //click in the window to shift focus there
         List<RemoteText> terminalCharacters = controller.getIdeaFrame().getTerminalPanel().getData().getAll();
         if (terminalCharacters.size() > 0) {
-            terminalCharacters.get(terminalCharacters.size() - 1).click();
+            if (!controller.isWindows()) {
+                terminalCharacters.get(terminalCharacters.size() - 1).click();
+            } else {
+                terminalCharacters.get(0).click();
+            }
         }
 
         controller.getKeyboard().enterText(command);
         pause(ofMillis(50).toMillis());
 
         controller.getKeyboard().hotKey(VK_ENTER);
-        pause(ofSeconds(waitDurationInSeconds).toMillis());
+
+        if (terminalCommandOptionList != null) {
+            terminalCommandOptionList.forEach(option -> {
+                pause(ofSeconds(option.getDurationBeforeOption()).toMillis());
+                controller.getKeyboard().enterText(option.getText());
+                controller.getKeyboard().hotKey(VK_ENTER);
+                pause(ofSeconds(option.getDurationAfterOption()).toMillis());
+            });
+        }
+
+        pause(ofSeconds(endWaitDuration).toMillis());
         controller.getIdeaFrame().getTerminalToolWindowHideButton().click();
     }
 
@@ -535,10 +554,10 @@ public class UiTestInteractionUtils {
             }
         }
 
-        controller.unsertIdeaFrame();
+        controller.unsetIdeaFrame();
 
         if (projectUnderTest.isSwitchBranchOnOpen()) {
-            executeDeterministicShellCommand(controller, "git checkout " + projectUnderTest.getGitBranch(), 2);
+            executeDeterministicTerminalCommand(controller, "git checkout " + projectUnderTest.getGitBranch(), 2, null);
         }
     }
 
@@ -608,7 +627,7 @@ public class UiTestInteractionUtils {
         RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
 
         try {
-            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
+            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButtonV2();
             copyButton.moveMouse();
             copyButton.click();
 
@@ -618,9 +637,15 @@ public class UiTestInteractionUtils {
             //paste
             controller.getKeyboard().hotKey(VK_RIGHT);
             controller.getKeyboard().hotKey(VK_ENTER);
-            controller.getKeyboard().hotKey(VK_META, VK_V);
+            if (controller.isMac()) {
+                controller.getKeyboard().hotKey(VK_META, VK_V);
+            } else if (controller.isWindows()) {
+                controller.getKeyboard().hotKey(VK_CONTROL, VK_V);
+            }
         } catch (Exception e) {
             //copy button not in sight, manually add text
+            System.out.println("Exception on trying to paste SDK version : " + e);
+            e.printStackTrace();
             closingTag.click();
             controller.getKeyboard().enterText(TestConstants.MAVEN_DEPENDENCY_TEMPLATE);
         }
@@ -651,7 +676,7 @@ public class UiTestInteractionUtils {
             gradleOption.click();
             pause(ofMillis(125).toMillis());
 
-            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
+            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButtonV2();
             copyButton.moveMouse();
             copyButton.click();
 
@@ -660,7 +685,11 @@ public class UiTestInteractionUtils {
             //paste
             controller.getKeyboard().hotKey(VK_RIGHT);
             controller.getKeyboard().hotKey(VK_ENTER);
-            controller.getKeyboard().hotKey(VK_META, VK_V);
+            if (controller.isMac()) {
+                controller.getKeyboard().hotKey(VK_META, VK_V);
+            } else {
+                controller.getKeyboard().hotKey(VK_CONTROL, VK_V);
+            }
         } catch (Exception e) {
             //copy button not in sight, manually add text
             previousElement.click();
@@ -746,6 +775,6 @@ public class UiTestInteractionUtils {
     public static void quickPaste(RemoteRobotController controller, String input) {
         StringSelection content = new StringSelection(input);
         java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(content, null);
-        controller.getKeyboard().hotKey(VK_META, VK_V);
+        controller.getKeyboard().hotKey((controller.isMac()) ? VK_META : VK_CONTROL, VK_V);
     }
 }

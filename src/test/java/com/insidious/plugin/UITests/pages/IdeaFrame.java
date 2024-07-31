@@ -330,6 +330,10 @@ public class IdeaFrame extends CommonContainerFixture {
                 .toList().get(0);
     }
 
+    public ComponentFixture findCopyButtonV2() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.COPY_DEPENDENCY_BUTTON);
+    }
+
     public ComponentFixture getTerminalToolWindowHideButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TERMINAL_TOOL_WINDOW_HIDE_BUTTON);
     }
@@ -503,6 +507,6 @@ public class IdeaFrame extends CommonContainerFixture {
     }
 
     public ComponentFixture getCloseBuildTabContent() {
-        return UITestUtils.getComponentFixture(remoteRobot,UITestUtils.UITags.BUILD_SYNC_CLOSE);
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BUILD_SYNC_CLOSE);
     }
 }

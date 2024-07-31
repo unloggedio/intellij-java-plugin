@@ -144,6 +144,7 @@ public class UITestUtils {
         PREMIUM_USER_TEXT("//div[@visible_text='Premium User']"),
         FIRST_FEATURE_IN_LIST("//div[@accessiblename='Get priority support']"),
         WRONG_KEY_TEXT("//div[@text='Error - wrong product key ⚠']"),
+        COPY_DEPENDENCY_BUTTON("//div[@tooltiptext='copy dependency']"),
         BUILD_SYNC_CLOSE("//div[@class='ContentTabLabel']");
 
         private String value;
@@ -317,8 +318,15 @@ public class UITestUtils {
     }
 
     public static void setSdkVersion(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
-        System.out.println("Setting sdk version 1");
-        controller.getKeyboard().hotKey(VK_META, VK_SEMICOLON);
+        System.out.println("Setting sdk version");
+        if(controller.getOperatingSystem().equals(RemoteRobotController.OperatingSystem.WINDOWS))
+        {
+            controller.getKeyboard().hotKey(VK_CONTROL, VK_ALT, VK_SHIFT, VK_S);
+        }
+        else if(controller.getOperatingSystem().equals(RemoteRobotController.OperatingSystem.MAC))
+        {
+            controller.getKeyboard().hotKey(VK_META, VK_SEMICOLON);
+        }
         controller.getIdeaFrame().getJDKComboBox().click();
 
         ComponentFixture myListFixture = controller.getIdeaFrame().getMyListComponent();
