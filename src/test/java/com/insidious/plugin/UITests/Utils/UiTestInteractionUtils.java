@@ -220,13 +220,13 @@ public class UiTestInteractionUtils {
 
         pause(ofMillis(250).toMillis());
 
-        controller.getKeyboard().hotKey(VK_ALT, VK_META, VK_Z);
+        controller.getKeyboard().hotKey(VK_ALT, controller.isMac() ? VK_META : VK_CONTROL, VK_Z);
         pause(ofMillis(750).toMillis());
         try {
             controller.getIdeaFrame().getGitRollbackButton().click();
         } catch (Exception e) {
             //try again
-            controller.getKeyboard().hotKey(VK_ALT, VK_META, VK_Z);
+            controller.getKeyboard().hotKey(VK_ALT, controller.isMac() ? VK_META : VK_CONTROL, VK_Z);
             pause(ofMillis(750).toMillis());
             controller.getIdeaFrame().getGitRollbackButton().click();
         }

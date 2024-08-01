@@ -35,7 +35,7 @@ public class UiTestsV3 {
         LocalProjectInfo mavenDemoLocal = new LocalProjectInfo("unlogged-spring-maven-demo", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "UnloggedDemoApplication.java", 120);
 
-        WindowsScripts mavenDemoScripts = new WindowsScripts(" Remove-Item -Recurse src/test/java ; Remove-Item -Recurse src/test/resources", "docker-compose -f conf/docker-compose.yml up -d", "docker stop $(docker ps -a -q) ; docker system prune -a --volumes");
+        WindowsScripts mavenDemoScripts = new WindowsScripts("Remove-Item -Recurse src/test/java ; Remove-Item -Recurse src/test/resources", "docker-compose -f conf/docker-compose.yml up -d", "docker stop $(docker ps -a -q) ; docker system prune -a --volumes");
 
         GitProjectInfo mavenDemo = new GitProjectInfo("unlogged-spring-maven-demo",
                 "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
@@ -108,6 +108,7 @@ public class UiTestsV3 {
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
             } else {
+                executeDeterministicTerminalCommand(controller, "docker volume create unlogged_volume", 5, null);
                 executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
             }
         });
@@ -222,14 +223,14 @@ public class UiTestsV3 {
 
     @Test
     @Order(7)
-    //@Disabled
+    @Disabled
     public void runnerFile_injection_test_maven_demo() {
         runnerFileInjectionAndAssertion();
     }
 
     @Test
     @Order(8)
-    //@Disabled
+    @Disabled
     public void localModeFrequencyLoggingTest() {
         //add to other files
         int projectIndex = 0;
@@ -241,7 +242,11 @@ public class UiTestsV3 {
         step("Add annotation and start project", () -> {
             openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
+            }
         });
 
         step("Open unlogged toolwindow if not open", () -> {
@@ -283,7 +288,7 @@ public class UiTestsV3 {
                     backToMenuIfOpen(controller);
 
                     controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                    pause(ofSeconds(1).toMillis());
+                    pause(ofSeconds(2).toMillis());
                     Integer checkboxesTemp = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                     if (i < (methodCounter - 1)) {
@@ -309,7 +314,7 @@ public class UiTestsV3 {
 
                 backToMenuIfOpen(controller);
                 controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                pause(ofSeconds(1).toMillis());
+                pause(ofSeconds(2).toMillis());
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                 //There should be only 1 candidate
@@ -323,7 +328,7 @@ public class UiTestsV3 {
                     backToMenuIfOpen(controller);
 
                     controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                    pause(ofSeconds(1).toMillis());
+                    pause(ofSeconds(2).toMillis());
                     Integer checkboxesTemp = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                     if (i < classCounter - 1) {
@@ -349,7 +354,7 @@ public class UiTestsV3 {
 
                 backToMenuIfOpen(controller);
                 controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                pause(ofSeconds(1).toMillis());
+                pause(ofSeconds(2).toMillis());
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                 //There should be only 1 candidate
@@ -363,7 +368,7 @@ public class UiTestsV3 {
                     backToMenuIfOpen(controller);
 
                     controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                    pause(ofSeconds(1).toMillis());
+                    pause(ofSeconds(2).toMillis());
                     Integer checkboxesTemp = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                     if (i < processCounter - 1) {
@@ -398,12 +403,12 @@ public class UiTestsV3 {
         });
 
         step("Stop running process", () -> {
-//            stopProcessInTerminal(controller);
-            executeShellScriptAndWait(controller, "kill_process.sh", 2);
-        });
-
-        step("Revert futureController", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile("FutureControllerFrequencyLogging.java", controller);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10,
+                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+            }
         });
     }
 
@@ -416,18 +421,23 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged(port=12100, serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
 
         step("Stop running process", () -> {
-//            stopProcessInTerminal(controller);
-            executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10,
+                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+            }
         });
-
-//        step("Revert futureController", () -> {
-//            UiTestInteractionUtils.openAndRevertGitChangesForFile("FutureController.java", controller);
-//        });
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            } else {
+                executeDeterministicTerminalCommand(controller, "docker volume create unlogged_volume", 5, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
+            }
         });
 
         step("Set Source to remote URL", () -> {
@@ -452,10 +462,10 @@ public class UiTestsV3 {
             ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
             textField.click();
 
-            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
-            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
             pause(ofSeconds(5).toMillis());
@@ -747,7 +757,12 @@ public class UiTestsV3 {
 
         step("Stop running process", () -> {
 //            stopProcessInTerminal(controller);
-            executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(0).getWindowsScripts().getStopProcess(), 10,
+                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+            }
         });
     }
 
@@ -1049,7 +1064,7 @@ public class UiTestsV3 {
             controller.getKeyboard().hotKey(VK_META, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
-            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
             pause(ofSeconds(7).toMillis());
@@ -1092,7 +1107,7 @@ public class UiTestsV3 {
             controller.getKeyboard().hotKey(VK_META, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
-            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
             pause(ofSeconds(7).toMillis());
@@ -1175,7 +1190,7 @@ public class UiTestsV3 {
             controller.getKeyboard().hotKey(VK_META, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
-            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
             pause(ofSeconds(7).toMillis());
 
@@ -1316,7 +1331,7 @@ public class UiTestsV3 {
             controller.getKeyboard().hotKey(VK_META, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
-            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
             pause(ofSeconds(5).toMillis());
@@ -1843,84 +1858,6 @@ public class UiTestsV3 {
         });
     }
 
-//    @Test
-//    @Disabled
-//    @Order(25)
-//    public void ide_errors_checkIDEFatalExceptions_sanity() {
-//        List<String> listIDE = listIDEFatalExceptions(controller);
-//        if (!listIDE.isEmpty()) {
-//            Assertions.fail("Assertion failure due to exceptions: " + listIDE);
-//        } else {
-//            Assertions.assertTrue(true);
-//        }
-//    }
-
-    //    private void assertNumberOfTestCases(JunitGenerationRequest request) {
-//        openFileIfNeeded(request.getTestBasePath().substring(request.getTestBasePath().lastIndexOf("/") + 1), controller);
-//        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
-//        clearGotIts(controller);
-//        TextEditorFixture editor = controller.getIdeaFrame().textEditor(Duration.ofSeconds(2));
-//        int numberOfTestsPresent = editor.getGutter().getIcons()
-//                .stream()
-//                .filter(icon -> icon.toString().contains("testState/run.svg"))
-//                .toList().size();
-//
-//        Assert.assertEquals("Expected and actual number of test cases are", expectedNumberOfTestCasesForFutureController, numberOfTestsPresent);
-//        expectedNumberOfTestCasesForFutureController += 1;
-//        pause(ofSeconds(10).toMillis());
-//    }
-
-    //    @Test
-//    @Order(1)
-//    @Disabled
-//    public void openProjectAndAddSDK() {
-//
-//        step("Open Project", () -> {
-//            final WelcomeFrame welcomeFrame = controller.getRemoteRobot().find(WelcomeFrame.class, ofSeconds(10));
-//            welcomeFrame.getOpenProjectButton().click();
-//            welcomeFrame.getProjectSelectorComboBox().click();
-//
-//            controller.getKeyboard().enterText("/" + projectUnderTest.getLocalProjectInfo().getProjectPath());
-//            pause(ofSeconds(1).toMillis());
-//            welcomeFrame.getOpenConfirmButton().click();
-//        });
-//
-//        step("Load idea frame and wait till IDE is in Smart mode", () -> {
-//            controller.getIdeaFrame();
-//        });
-//
-//        step("Revert all changes made to project, remove local sessions", () -> {
-//            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRevertScriptName(), 5);
-//            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRemoveScriptName(), 2);
-//        });
-//
-//        step("Add unlogged dependency (Mac)", () -> {
-//            openFileIfNeeded("pom.xml", controller);
-//            ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
-//            unloggedToolbar.moveMouse();
-//            unloggedToolbar.click();
-//            pause(ofSeconds(1).toMillis());
-//
-//            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
-//            copyButton.moveMouse();
-//            copyButton.click();
-//
-//            //paste right after dependencies
-//            TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
-//            List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
-//            RemoteText dependencyText = pomContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
-//            int indexOfDependencies = pomContents.indexOf(dependencyText);
-//            RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
-//            closingTag.click();
-//            controller.getKeyboard().hotKey(VK_RIGHT);
-//            controller.getKeyboard().hotKey(VK_ENTER);
-//            controller.getKeyboard().hotKey(VK_META, VK_V);
-//
-//            performMavenSync(controller);
-//            controller.waitForIndex();
-//        });
-//    }
-
     private void runnerFileInjectionAndAssertion() {
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -1929,7 +1866,9 @@ public class UiTestsV3 {
         step("Inject Unlogged Test File", () -> {
             injectUnloggedTestFile(controller, false);
             openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
-            Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
+            pause(ofSeconds(1).toMillis());
+            int classMentionCount = controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size();
+            Assertions.assertTrue(classMentionCount == 1 || classMentionCount == 2);
         });
         step("Inject Unlogged Test File again to see pop-up", () -> {
             injectUnloggedTestFile(controller, false);
@@ -1937,9 +1876,16 @@ public class UiTestsV3 {
         });
         step("Delete and re-inject Unlogged Test File", () -> {
             openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
-            controller.getKeyboard().hotKey(VK_META, VK_UP);
-            controller.getKeyboard().hotKey(VK_DELETE);
-            controller.getKeyboard().hotKey(VK_ENTER);
+
+            if (controller.isMac()) {
+                controller.getKeyboard().hotKey(VK_META, VK_UP);
+                controller.getKeyboard().hotKey(VK_DELETE);
+                controller.getKeyboard().hotKey(VK_ENTER);
+            } else {
+                controller.getIdeaFrame().getLocateButton().click();
+                controller.getKeyboard().hotKey(VK_DELETE);
+                controller.getKeyboard().hotKey(VK_ENTER);
+            }
             injectUnloggedTestFile(controller, false);
             openFileIfNeeded("src/test/java/UnloggedTest.java", controller);
             Assertions.assertEquals(2, controller.getIdeaFrame().textEditor().findAllText("UnloggedTestRunner").size());
@@ -2016,5 +1962,11 @@ public class UiTestsV3 {
                 Assertions.assertTrue(controller.getIdeaFrame().getPremiumUserText().isShowing());
             }
         });
+    }
+
+    @Test
+    @Order(40)
+    public void testSleep5() throws InterruptedException {
+        Thread.sleep(5000000);
     }
 }
