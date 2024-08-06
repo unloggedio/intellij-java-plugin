@@ -1,14 +1,20 @@
 
 package com.insidious.plugin.UITests;
 
+import com.insidious.plugin.Constants;
+import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.insidious.plugin.UITests.Utils.UiTestInteractionUtils;
+import com.insidious.plugin.UITests.pages.WelcomeFrame;
 import com.insidious.plugin.UITests.wrapper.*;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.*;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,20 +32,22 @@ import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 public class UiTestsV3 {
     private RemoteRobotController controller;
     private final List<GitProjectInfo> projectsToTest = new ArrayList<>();
+    private Path homePath;
 
     public UiTestsV3() {
         RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
         Keyboard keyboard = new Keyboard(remoteRobot);
         controller = new RemoteRobotController(remoteRobot, keyboard);
 
+        this.homePath = Constants.HOME_PATH;
+
         LocalProjectInfo mavenDemoLocal = new LocalProjectInfo("unlogged-spring-maven-demo", "start_project.sh",
-                "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "UnloggedDemoApplication.java", 120);
+                "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "UnloggedDemoApplication.java", 90);
 
-        WindowsScripts mavenDemoScripts = new WindowsScripts("Remove-Item -Recurse src/test/java ; Remove-Item -Recurse src/test/resources", "docker-compose -f conf/docker-compose.yml up -d", "docker stop $(docker ps -a -q) ; docker system prune -a --volumes");
-
+        WindowsScripts mavenDemoScripts = new WindowsScripts("Remove-Item -Recurse src/test/java ; Remove-Item -Recurse src/test/resources", "docker-compose -f conf/docker-compose.yml up -d", "docker stop $(docker ps -a -q) ; docker container remove target-repo ;  docker container remove conf-mysql-1 ; docker image remove conf-demo-app");
         GitProjectInfo mavenDemo = new GitProjectInfo("unlogged-spring-maven-demo",
                 "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
-                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 30,
+                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 90,
                 true, "17", "src/test/java/org/unlogged/demo", 15);
         mavenDemo.setLocalProjectInfo(mavenDemoLocal);
         mavenDemo.setWindowsScripts(mavenDemoScripts);
@@ -48,11 +56,13 @@ public class UiTestsV3 {
 
         GitProjectInfo gradleDemo = new GitProjectInfo("unlogged-spring-gradle-demo",
                 "https://github.com/unloggedio/unlogged-spring-gradle-demo.git",
-                "ui_test_clean", "build.gradle", LocalProjectInfo.BuildSystem.GRADLE, 30,
-                true, "17", "src/test/java/org/unlogged/demo", 10);
+                "ui_test_clean", "build.gradle", LocalProjectInfo.BuildSystem.GRADLE, 90,
+                true, "17", "src/test/java/org/unlogged/demo", 9);
         LocalProjectInfo gradleDemoLocal = new LocalProjectInfo("unlogged-spring-gradle-demo", "start_project.sh",
-                "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "Application.java", 30);
+                "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "Application.java", 90);
         gradleDemo.setLocalProjectInfo(gradleDemoLocal);
+        WindowsScripts gradleDemoWinScripts = new WindowsScripts("Remove-Item -Recurse src/test/java ; Remove-Item -Recurse src/test/resources", "docker-compose -f conf/docker-compose.yml up -d", "docker stop $(docker ps -a -q) ; docker container remove target-repo ;  docker container remove conf-mysql-1 ; docker image remove conf-demo-app");
+        gradleDemo.setWindowsScripts(gradleDemoWinScripts);
         projectsToTest.add(gradleDemo);
 
         GitProjectInfo multimoduleDemo = new GitProjectInfo("multimodule-demo-1",
@@ -68,7 +78,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(1)
-    @Disabled
+    //@Disabled
     public void cloneAndAddSDK() {
         int projectIndex = 0;
         step("Clone project - fresh state, change branch and setup sdk version", () -> {
@@ -82,7 +92,7 @@ public class UiTestsV3 {
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
             } else {
-                executeDeterministicTerminalCommand(controller, "Remove-Item -Recurse ~/.unlogged/sessions", 2, null);
+                executeDeterministicTerminalCommand(controller, "Remove-Item  ~/.unlogged/sessions -Force  -Recurse -ErrorAction SilentlyContinue", 2, null);
             }
         });
 
@@ -93,7 +103,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(2)
-    @Disabled
+    //@Disabled
     public void sdk_session_issues_96_and_97() {
         int projectIndex = 0;
 
@@ -174,12 +184,11 @@ public class UiTestsV3 {
         });
 
         step("Stop and cleanup", () -> {
-//            stopProcessInTerminal(controller);
             if (controller.isWindows()) {
-                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10,
-                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+                //Delete old sessions for now by closing project, then running a command to delete it here
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10, null);
                 executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getClearTests(), 2, null);
-                executeDeterministicTerminalCommand(controller, "Remove-Item -Recurse -Force ~/.unlogged/sessions", 2, null);
+                closeAndReopenProject(controller, projectsToTest.get(projectIndex).getProjectName(), true, homePath.toString());
             } else {
                 executeShellScriptAndWait(controller, "kill_process.sh", 2);
                 executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
@@ -195,42 +204,42 @@ public class UiTestsV3 {
 
     @Test
     @Order(3)
-    @Disabled
+    //@Disabled
     public void validateGetPremiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(false);
     }
 
     @Test
     @Order(4)
-    @Disabled
+    //@Disabled
     public void validateWrongKeyEntry() {
         validateKeyEntry(false);
     }
 
     @Test
     @Order(5)
-    @Disabled
+    //@Disabled
     public void validateCorrectKeyEntry() {
         validateKeyEntry(true);
     }
 
     @Test
     @Order(6)
-    @Disabled
+    //@Disabled
     public void validatePremiumBannerAcrossScreens() {
         validateBannerPresenceAcrossScreens(true);
     }
 
     @Test
     @Order(7)
-    @Disabled
+    //@Disabled
     public void runnerFile_injection_test_maven_demo() {
         runnerFileInjectionAndAssertion();
     }
 
     @Test
     @Order(8)
-    @Disabled
+    //@Disabled
     public void localModeFrequencyLoggingTest() {
         //add to other files
         int projectIndex = 0;
@@ -245,6 +254,8 @@ public class UiTestsV3 {
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
             } else {
+                //temporarily run twice
+                executeDeterministicTerminalCommand(controller, "Remove-Item  ~/.unlogged/sessions -Force  -Recurse -ErrorAction SilentlyContinue", 2, null);
                 executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
             }
         });
@@ -272,7 +283,7 @@ public class UiTestsV3 {
 
                 backToMenuIfOpen(controller);
                 controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                pause(ofSeconds(2).toMillis());
+                pause(ofSeconds(5).toMillis());
 
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
@@ -342,6 +353,7 @@ public class UiTestsV3 {
 
             //test process level counter and github_sdk_issue_#83
             openFileIfNeeded("ReferralUtilsBase.java", controller);
+            pause(ofSeconds(2).toMillis());
             gutterIcons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
 
             assert gutterIcons.size() == 2;
@@ -406,16 +418,18 @@ public class UiTestsV3 {
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, "kill_process.sh", 2);
             } else {
-                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10,
-                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getClearTests(), 2, null);
+                closeAndReopenProject(controller, projectsToTest.get(projectIndex).getProjectName(), true, homePath.toString());
             }
         });
     }
 
     //remote mode start - start of remote chain tests for maven - demo
+    // Wrong file opens for revert
     @Test
     @Order(9)
-    @Disabled
+    //@Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(port=12100, serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -424,13 +438,13 @@ public class UiTestsV3 {
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, "kill_process.sh", 2);
             } else {
-                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10,
-                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10, null);
             }
         });
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
+            openFileIfNeeded(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
@@ -513,7 +527,7 @@ public class UiTestsV3 {
     //remote mode start - debug DirectInvoke for this method
     @Test
     @Order(10)
-    @Disabled
+    //@Disabled
     public void serverIssue_14() {
         int projectIndex = 0;
         step("Try to generate dummy data boilerplate Junit code.", () -> {
@@ -541,7 +555,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(11)
-    @Disabled
+    //@Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
         backToMenuIfOpen(controller);
@@ -581,7 +595,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(12)
-    @Disabled
+    //@Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
             backToMenuIfOpen(controller);
@@ -604,7 +618,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(13)
-    @Disabled
+    //@Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
         step("Back to menu if needed", () -> {
@@ -665,7 +679,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(14)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -688,7 +702,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(15)
-    @Disabled
+    //@Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
         step("Generate a new Junit test case for a particular method", () -> {
@@ -716,7 +730,7 @@ public class UiTestsV3 {
     //remote mode - ending case
     @Test
     @Order(16)
-    @Disabled
+    //@Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
             controller.getIdeaFrame().getNotificationTab().click();
@@ -756,35 +770,59 @@ public class UiTestsV3 {
         });
 
         step("Stop running process", () -> {
-//            stopProcessInTerminal(controller);
             if (!controller.isWindows()) {
                 executeShellScriptAndWait(controller, "kill_process.sh", 2);
             } else {
-                executeDeterministicTerminalCommand(controller, projectsToTest.get(0).getWindowsScripts().getStopProcess(), 10,
-                        Arrays.asList(new TerminalCommandOption("y", 5, 0)));
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(0).getWindowsScripts().getStopProcess(), 10, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(0).getWindowsScripts().getClearTests(), 2, null);
+                closeAndReopenProject(controller, projectsToTest.get(0).getProjectName(), true, homePath.toString());
             }
         });
     }
 
     //------------------------------
     //local mode start and sanity
+    //Clicks left most entry in open editors instead of offset 1 for rollback.
     @Test
     @Order(17)
-    @Disabled
+    //@Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(port=12100)";
 
         step("Add annotation and start project", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getClearTests(), 2, null);
+                executeDeterministicTerminalCommand(controller, "Remove-Item -Recurse -Force ~/.unlogged/sessions", 2, null);
+            }
+            //add extra step to open
+            openFileIfNeeded(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
+            controller.getIdeaFrame().textEditor().getEditor().scrollToOffset(0);
+            controller.getIdeaFrame().textEditor().getEditor().scrollToOffset(0);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, false, projectsToTest.get(projectIndex).getLineCount());
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
+            }
         });
 
         step("Set source filter to Localhost", () -> {
             UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
             backToMenuIfOpen(controller);
+
+            openFileIfNeeded("FutureController.java", controller);
+            pause(ofSeconds(1).toMillis());
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+            pause(ofSeconds(2).toMillis());
+
+            List<GutterIcon> icons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            icons.get(0).click();
+
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
@@ -838,7 +876,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(18)
-    @Disabled
+    //@Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
         step("Back to menu", () -> {
@@ -896,7 +934,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(19)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
             backToMenuIfOpen(controller);
@@ -914,7 +952,7 @@ public class UiTestsV3 {
     //Server Issues Sheet - Issue 73
     @Test
     @Order(20)
-    @Disabled
+    //@Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
         step("Close Options menu if open", () -> {
@@ -944,7 +982,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(21)
-    @Disabled
+    //@Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
         step("Save Candidates", () -> {
@@ -982,7 +1020,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(22)
-    @Disabled
+    //@Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -993,6 +1031,15 @@ public class UiTestsV3 {
 
         step("Look for Local and ensure it opens filters", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
+
+            openFileIfNeeded("FutureController.java", controller);
+            pause(ofSeconds(1).toMillis());
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+            pause(ofSeconds(2).toMillis());
+
+            List<GutterIcon> icons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            icons.get(0).click();
+
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
 
             ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
@@ -1008,7 +1055,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(23)
-    @Disabled
+    //@Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -1035,7 +1082,7 @@ public class UiTestsV3 {
     //start in local mode - ending case
     @Test
     @Order(24)
-    @Disabled
+    //@Disabled
     public void serverIssue_46() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -1061,7 +1108,7 @@ public class UiTestsV3 {
             ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
             textField.click();
 
-            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
             controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
@@ -1083,7 +1130,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(25)
-    @Disabled
+    //@Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -1104,7 +1151,7 @@ public class UiTestsV3 {
             ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
             textField.click();
 
-            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
             controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
@@ -1153,7 +1200,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(26)
-    @Disabled
+    //@Disabled
     public void serverIssue_37() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -1187,7 +1234,7 @@ public class UiTestsV3 {
             ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
             textField.click();
 
-            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
             controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
@@ -1212,8 +1259,13 @@ public class UiTestsV3 {
         });
 
         step("stop running process", () -> {
-//            stopProcessInTerminal(controller);
-            executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, "kill_process.sh", 2);
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(0).getWindowsScripts().getStopProcess(), 10, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(0).getWindowsScripts().getClearTests(), 2, null);
+                closeAndReopenProject(controller, projectsToTest.get(0).getProjectName(), true, homePath.toString());
+            }
         });
 
     }
@@ -1221,12 +1273,20 @@ public class UiTestsV3 {
     //doesn't need project to start
     @Test
     @Order(27)
-    @Disabled
+    //@Disabled
     public void serverIssues_23() {
         int switchCount = 10;
         step("open filters tab", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
             backToMenuIfOpen(controller);
+
+            openFileIfNeeded("FutureController.java", controller);
+            pause(ofSeconds(1).toMillis());
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+            pause(ofSeconds(2).toMillis());
+
+            List<GutterIcon> icons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            icons.get(0).click();
 
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             controller.getIdeaFrame().getFilterButton().click();
@@ -1248,7 +1308,7 @@ public class UiTestsV3 {
     //switch to gradle project
     @Test
     @Order(28)
-    @Disabled
+    //@Disabled
     public void gradle_project_onboarding() {
         int projectIndex = 1;
         try {
@@ -1278,7 +1338,12 @@ public class UiTestsV3 {
         //add assertions for exceptions popping up in notifications
 
         step("Remove local sessions", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
+            } else {
+                executeDeterministicTerminalCommand(controller, "Remove-Item -Recurse -Force ~/.unlogged/sessions", 2, null);
+
+            }
         });
 
         //add gradle dependencies
@@ -1290,7 +1355,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(29)
-    @Disabled
+    //@Disabled
     public void runnerFile_injection_test_gradle_demo() {
         runnerFileInjectionAndAssertion();
     }
@@ -1298,20 +1363,31 @@ public class UiTestsV3 {
 
     @Test
     @Order(30)
-    @Disabled
+    //@Disabled
     public void remote_mode_general_gradle() {
         int projectIndex = 1;
-        final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
-        System.out.println("Main class name = " + projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName());
+        final String annotationText = "@Unlogged(port = 12100, serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
         step("Add annotation and start project", () -> {
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true, projectsToTest.get(projectIndex).getLineCount());
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
+            }
         });
 
         step("Set Source to remote URL", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
             openFileIfNeeded("FutureController.java", controller);
             getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller).get(0).click();
+
+            openFileIfNeeded("FutureController.java", controller);
+            pause(ofSeconds(1).toMillis());
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+            pause(ofSeconds(2).toMillis());
+
+            List<GutterIcon> icons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            icons.get(0).click();
 
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
@@ -1328,7 +1404,7 @@ public class UiTestsV3 {
             ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
             textField.click();
 
-            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
             controller.getKeyboard().enterText(TestConstants.REMOTE_DOWNLOAD_URL);
@@ -1370,7 +1446,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(31)
-    @Disabled
+    //@Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
         step("Back to menu", () -> {
@@ -1430,13 +1506,19 @@ public class UiTestsV3 {
         });
 
         step("Close options before next test", () -> {
-            backToMenuIfOpen(controller);
+            if (controller.isWindows()) {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getClearTests(), 2, null);
+                closeAndReopenProject(controller, projectsToTest.get(projectIndex).getProjectName(), true, homePath.toString());
+            } else {
+                //call cmd for mac
+            }
         });
     }
 
     @Test
     @Order(32)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_remote_gradle() {
 
         step("Clear filters and selections", () -> {
@@ -1459,27 +1541,52 @@ public class UiTestsV3 {
         });
 
         step("Stop running process", () -> {
-            stopProcessInTerminal(controller);
+            if (controller.isWindows()) {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(1).getWindowsScripts().getStopProcess(), 10, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(1).getWindowsScripts().getClearTests(), 2, null);
+                closeAndReopenProject(controller, projectsToTest.get(1).getProjectName(), true, homePath.toString());
+            } else {
+                executeShellScriptAndWait(controller, "kill_process.sh", 2);
+                executeShellScriptAndWait(controller, projectsToTest.get(1).getLocalProjectInfo().getRemoveScriptName(), 2);
+                executeShellScriptAndWait(controller, projectsToTest.get(1).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            }
         });
     }
 
     @Test
     @Order(33)
-    @Disabled
+    //@Disabled
     public void run_mode_local_general_gradle() {
         int projectIndex = 1;
-        final String annotationText = "@Unlogged";
+        final String annotationText = "@Unlogged(port=12100)";
 
         step("Add annotation and start project", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            } else {
+                //clear sessions
+            }
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, false, projectsToTest.get(projectIndex).getLineCount());
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
+            } else {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStartProcess(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration(), null);
+            }
         });
 
         step("Set source filter to Localhost", () -> {
             UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
             backToMenuIfOpen(controller);
+
+            openFileIfNeeded("FutureController.java", controller);
+            pause(ofSeconds(1).toMillis());
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+            pause(ofSeconds(2).toMillis());
+
+            List<GutterIcon> icons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            icons.get(0).click();
+
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
@@ -1532,7 +1639,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(34)
-    @Disabled
+    //@Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
         step("Back to menu", () -> {
@@ -1597,7 +1704,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(35)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_local_gradle() {
         step("Clear filter and selections", () -> {
             backToMenuIfOpen(controller);
@@ -1613,13 +1720,21 @@ public class UiTestsV3 {
         });
 
         step("Stop running process", () -> {
-            stopProcessInTerminal(controller);
+            if (controller.isWindows()) {
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(1).getWindowsScripts().getStopProcess(), 10, null);
+                executeDeterministicTerminalCommand(controller, projectsToTest.get(1).getWindowsScripts().getClearTests(), 2, null);
+                executeDeterministicTerminalCommand(controller, "Remove-Item -Recurse -Force ~/.unlogged/sessions", 2, null);
+            } else {
+                executeShellScriptAndWait(controller, "kill_process.sh", 2);
+                executeShellScriptAndWait(controller, projectsToTest.get(1).getLocalProjectInfo().getRemoveScriptName(), 2);
+                executeShellScriptAndWait(controller, projectsToTest.get(1).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            }
         });
     }
 
     @Test
     @Order(36)
-    @Disabled
+    //@Disabled
     public void close_LastProject() {
         step("Open readme file to prevent shortcut clash", () -> {
             openFileIfNeeded("README.md", controller);
@@ -1632,7 +1747,7 @@ public class UiTestsV3 {
     //----------------
     @Test
     @Order(37)
-    @Disabled
+    //@Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
 
@@ -1654,7 +1769,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(38)
-    @Disabled
+    //@Disabled
     public void multimodule_local_sanity_multimodule() {
         int projectIndex = 2;
         //don't add annotations
@@ -1792,7 +1907,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(39)
-    @Disabled
+    //@Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
 

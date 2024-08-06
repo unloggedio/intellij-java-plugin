@@ -63,4 +63,8 @@ public class WelcomeFrame extends CommonContainerFixture {
     public ComponentFixture getGitPatLoginButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_PAT_LOGIN_BUTTON);
     }
+
+    public ComponentFixture getComponentByXpath(String xpath) {
+        return UITestUtils.getComponentFixture(remoteRobot, xpath);
+    }
 }

@@ -42,7 +42,7 @@ public class UITestUtils {
         HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
         OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']"),
         OK_BUTTON_GENERIC("//div[@text='OK']"),
-        LOCATE_FILE("//div[@tooltiptext.key='action.SelectOpenedFileInProjectView.text']"),
+        LOCATE_FILE("//div[@myicon='locate.svg']"),
         REPLAY_TAB("//div[@text='Replay']"),
         REPLAY_EXECUTE_BUTTON("//div[@defaulticon='execute-button-outlined.svg']"),
         SAVE_REPLAY_BUTTON("//div[@text='Save Replay']"),

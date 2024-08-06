@@ -8,12 +8,15 @@ import com.insidious.plugin.UITests.wrapper.JunitGenerationRequest;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.apache.commons.io.FileUtils;
+import org.assertj.swing.core.MouseButton;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
 
 import static java.time.Duration.*;
 
 import java.awt.datatransfer.StringSelection;
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -42,12 +45,17 @@ public class UiTestInteractionUtils {
 
         }
         TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+        controller.getIdeaFrame().textEditor().getEditor().scrollToOffset(0);
+        controller.getIdeaFrame().textEditor().getEditor().scrollToOffset(0);
         try {
             expandJavaFile(textEditorFixture.getEditor());
         } catch (NoSuchElementException e) {
             //package text not found
         }
 
+        //reload texteditor fixture
+        textEditorFixture = controller.getIdeaFrame().textEditor();
+        textEditorFixture.getEditor().scrollToOffset(0);
         List<RemoteText> mainClassContents = textEditorFixture.getEditor().getData().getAll();
         RemoteText firstSemicolon = mainClassContents.stream().filter(text -> text.getText().equals(";")).toList().get(0);
         firstSemicolon.click();
@@ -153,6 +161,7 @@ public class UiTestInteractionUtils {
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             if (textEditorFixture.getEditor().getFileName().equals(filename)) {
                 //don't open if file is already open
+                System.out.println("Not Opening file, as it is already open : "+filename);
                 return;
             }
         } catch (Exception e) {
@@ -165,7 +174,7 @@ public class UiTestInteractionUtils {
         }
         pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(filename);
-        pause(ofMillis(250).toMillis());
+        pause(ofSeconds(1).toMillis());
         controller.getKeyboard().hotKey(VK_ENTER);
     }
 
@@ -215,8 +224,8 @@ public class UiTestInteractionUtils {
         pause(ofMillis(500).toMillis());
 
         TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
-        RemoteText text = textEditorFixture.getEditor().getData().getAll().get(0);
-        text.click();
+        textEditorFixture.getEditor().scrollToOffset(0);
+        textEditorFixture.getEditor().clickOnOffset(0, MouseButton.LEFT_BUTTON,1);
 
         pause(ofMillis(250).toMillis());
 
@@ -583,7 +592,7 @@ public class UiTestInteractionUtils {
 
     public static void runIntelliJIdeaAction(RemoteRobotController controller, String option,
                                              int waitDurationInSeconds) {
-        controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_A);
+        controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_SHIFT, VK_A);
         pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(option);
         pause(ofSeconds(2).toMillis());
@@ -593,7 +602,7 @@ public class UiTestInteractionUtils {
 
     public static void runIntelliJIdeaActionV2(RemoteRobotController controller, String option,
                                                int waitDurationInSeconds) {
-        controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
+        controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_SHIFT, VK_O);
         pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(option);
         pause(ofSeconds(2).toMillis());
@@ -776,5 +785,26 @@ public class UiTestInteractionUtils {
         StringSelection content = new StringSelection(input);
         java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(content, null);
         controller.getKeyboard().hotKey((controller.isMac()) ? VK_META : VK_CONTROL, VK_V);
+    }
+
+    public static void
+    closeAndReopenProject(RemoteRobotController controller, String projectText, boolean deleteSessions, String homePath) {
+        openFileIfNeeded("README.md", controller);
+        runIntelliJIdeaAction(controller, "Close Project", 10);
+
+        if (deleteSessions) {
+            try {
+                FileUtils.deleteDirectory(new File(homePath));
+            } catch (Exception e) {
+                System.out.println("Error deleting session folder");
+            }
+        }
+
+        pause(ofSeconds(1).toMillis());
+        //top project will be the last one opened
+        controller.getKeyboard().hotKey(VK_ENTER);
+
+        //wait till index
+        pause(ofSeconds(20).toMillis());
     }
 }
