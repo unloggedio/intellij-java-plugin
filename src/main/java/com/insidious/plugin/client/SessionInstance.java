@@ -2415,11 +2415,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                     stackTraceBuilder.append("__")
                             .append(stackTrace[i].getFileName())
                             .append("_")
-                            .append(stackTrace[i].getLineNumber())
-                            .append("_")
-                            .append(stackTrace[i].getClassName())
-                            .append("_")
-                            .append(stackTrace[i].getMethodName());
+                            .append(stackTrace[i].getLineNumber());
                 }
                 stackTraceBuilder.append("ENDS");
 
