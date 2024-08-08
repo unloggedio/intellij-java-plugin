@@ -405,7 +405,7 @@ public class UiTestsV3 {
 
                 backToMenuIfOpen(controller);
                 controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                pause(ofSeconds(5).toMillis());
+                pause(ofSeconds(7).toMillis());
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
                 //There should be 3 candidates (function overloading)
@@ -1505,6 +1505,7 @@ public class UiTestsV3 {
             Assertions.assertEquals(3, count);
         });
 
+        //UI freezes by this time (on windows)
         step("Close options before next test", () -> {
             if (controller.isWindows()) {
                 executeDeterministicTerminalCommand(controller, projectsToTest.get(projectIndex).getWindowsScripts().getStopProcess(), 10, null);
@@ -1753,14 +1754,27 @@ public class UiTestsV3 {
 
         //enter token text ->
         step("Clone multimodule project and switch branch", () -> {
+
+            if (controller.isWindows()) {
+                //remove sessions if they exist
+                try {
+                    FileUtils.deleteDirectory(new File(homePath.toString()));
+                } catch (Exception e) {
+                    System.out.println("Error deleting session folder");
+                }
+            }
+
             cloneAndOpenProject(controller, projectsToTest.get(2));
             pause(ofSeconds(5).toMillis());
             setSdkVersion(controller, projectsToTest.get(projectIndex));
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 3);
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 3);
+            }
         });
 
         step("Open Pom and add dependency", () -> {
             ContainerFixture projectViewTree = controller.getIdeaFrame().getProjectViewTree();
+            pause(ofSeconds(7).toMillis());
             RemoteText firstPom = projectViewTree.getData().getAll().stream().filter(text -> text.getText().equals("pom.xml")).toList().get(0);
             firstPom.doubleClick();
             addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex), false);
@@ -1776,7 +1790,11 @@ public class UiTestsV3 {
         //only base pom has unlogged sdk at this stage, assert the number of candidates generated for method
 
         step("Start project", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getStartupWaitDuration());
+            if (!controller.isWindows()) {
+                executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getStartupWaitDuration());
+            } else {
+                executeDeterministicTerminalCommand(controller, "mvn clean install ; cd application ; mvn spring-boot:run", projectsToTest.get(projectIndex).getStartupWaitDuration(), null);
+            }
         });
 
         step("Set mocks", () -> {
@@ -1788,9 +1806,11 @@ public class UiTestsV3 {
 
             mockIcon.click();
             controller.getIdeaFrame().getCreateNewMockButton().click();
+            controller.getIdeaFrame().getMockPopupCloseButton().moveMouse();
+            pause(ofMillis(250).toMillis());
             controller.getIdeaFrame().getMockPopupCloseButton().click();
             controller.getIdeaFrame().getFirstJTextField().click();
-            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(controller.isMac() ? VK_META : VK_CONTROL, VK_A);
             controller.getKeyboard().hotKey(VK_BACK_SPACE);
             controller.getKeyboard().enterText("Custom mock");
             controller.getIdeaFrame().getMockEditSaveButton().click();
@@ -1800,7 +1820,6 @@ public class UiTestsV3 {
 
         step("Clear candidates and DirectInvoke controller method", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
             pause(ofMillis(500).toMillis());
 
             List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -2077,11 +2096,5 @@ public class UiTestsV3 {
                 Assertions.assertTrue(controller.getIdeaFrame().getPremiumUserText().isShowing());
             }
         });
-    }
-
-    @Test
-    @Order(40)
-    public void testSleep5() throws InterruptedException {
-        Thread.sleep(5000000);
     }
 }

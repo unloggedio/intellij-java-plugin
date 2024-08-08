@@ -161,7 +161,7 @@ public class UiTestInteractionUtils {
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             if (textEditorFixture.getEditor().getFileName().equals(filename)) {
                 //don't open if file is already open
-                System.out.println("Not Opening file, as it is already open : "+filename);
+                System.out.println("Not Opening file, as it is already open : " + filename);
                 return;
             }
         } catch (Exception e) {
@@ -225,7 +225,7 @@ public class UiTestInteractionUtils {
 
         TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
         textEditorFixture.getEditor().scrollToOffset(0);
-        textEditorFixture.getEditor().clickOnOffset(0, MouseButton.LEFT_BUTTON,1);
+        textEditorFixture.getEditor().clickOnOffset(0, MouseButton.LEFT_BUTTON, 1);
 
         pause(ofMillis(250).toMillis());
 
@@ -549,7 +549,7 @@ public class UiTestInteractionUtils {
         if (projectUnderTest.getLoginOptions() != null) {
             System.out.println("Not null");
             try {
-                welcomeFrame.getGitUseTokenOprionButton().click();
+                welcomeFrame.getGitUseTokenOption().click();
                 pause(ofSeconds(1).toMillis());
 
                 controller.getKeyboard().enterText(projectUnderTest.getLoginOptions().getPersonalAccessToken());
@@ -558,8 +558,14 @@ public class UiTestInteractionUtils {
                 welcomeFrame.getGitPatLoginButton().click();
                 pause(ofSeconds(10).toMillis());
             } catch (Exception e) {
-                System.out.println("Exception e : " + e);
-                e.printStackTrace();
+                System.out.println("'Use token option not found' e : " + e);
+                //fallback method
+                controller.getKeyboard().hotKey(VK_RIGHT, VK_ENTER);
+                controller.getKeyboard().enterText(projectUnderTest.getLoginOptions().getPersonalAccessToken());
+                pause(ofMillis(250).toMillis());
+
+                welcomeFrame.getGitPatLoginButton().click();
+                pause(ofSeconds(10).toMillis());
             }
         }
 
