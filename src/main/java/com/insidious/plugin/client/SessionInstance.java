@@ -2409,7 +2409,21 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
             try {
-                properties.put("stacktrace", ObjectMapperInstance.getInstance().writeValueAsBytes(e.getStackTrace()));
+                StackTraceElement[] stackTrace = e.getStackTrace();
+                StringBuilder stackTraceBuilder = new StringBuilder();
+                for (int i=0;i<=stackTrace.length-1;i++) {
+                    stackTraceBuilder.append("__")
+                            .append(stackTrace[i].getFileName())
+                            .append("_")
+                            .append(stackTrace[i].getLineNumber())
+                            .append("_")
+                            .append(stackTrace[i].getClassName())
+                            .append("_")
+                            .append(stackTrace[i].getMethodName());
+                }
+                stackTraceBuilder.append("ENDS");
+
+                properties.put("stacktrace", ObjectMapperInstance.getInstance().writeValueAsString(stackTraceBuilder.toString()));
             } catch (JsonProcessingException ex) {
 //                throw new RuntimeException(ex);
             }
