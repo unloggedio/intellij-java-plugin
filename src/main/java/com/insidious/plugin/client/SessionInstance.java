@@ -2404,25 +2404,22 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         } catch (Exception e) {
             e.printStackTrace();
             logger.warn("Exception in scan and build session", e);
+
             JSONObject properties = new JSONObject();
             properties.put("project", executionSession.getPath());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
-            try {
-                StackTraceElement[] stackTrace = e.getStackTrace();
-                StringBuilder stackTraceBuilder = new StringBuilder();
-                for (int i=0;i<=stackTrace.length-1;i++) {
-                    stackTraceBuilder.append("__")
-                            .append(stackTrace[i].getFileName())
-                            .append("_")
-                            .append(stackTrace[i].getLineNumber());
-                }
-                stackTraceBuilder.append("ENDS");
-
-                properties.put("stacktrace", ObjectMapperInstance.getInstance().writeValueAsString(stackTraceBuilder.toString()));
-            } catch (JsonProcessingException ex) {
-//                throw new RuntimeException(ex);
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            StringBuilder stackTraceBuilder = new StringBuilder();
+            for (int i=0;i<=stackTrace.length-1;i++) {
+                stackTraceBuilder.append("__")
+                        .append(stackTrace[i].getFileName())
+                        .append("_")
+                        .append(stackTrace[i].getLineNumber());
             }
+            stackTraceBuilder.append("ENDS");
+            properties.put("stacktrace", stackTraceBuilder.toString());
+
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             if (shutdown) {
                 scanEnable = false;
