@@ -2404,15 +2404,13 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         } catch (Exception e) {
             e.printStackTrace();
             logger.warn("Exception in scan and build session", e);
+
             JSONObject properties = new JSONObject();
             properties.put("project", executionSession.getPath());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
-            try {
-                properties.put("stacktrace", ObjectMapperInstance.getInstance().writeValueAsBytes(e.getStackTrace()));
-            } catch (JsonProcessingException ex) {
-//                throw new RuntimeException(ex);
-            }
+            properties.put("stacktrace", ExceptionUtils.trimStackTraceElements(e.getStackTrace()));
+
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             if (shutdown) {
                 scanEnable = false;
