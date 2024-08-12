@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ExceptionUtils {
 
@@ -66,6 +68,12 @@ public class ExceptionUtils {
                             (stackItem.get("fileName").asText() + ":" + stackItem.get("lineNumber").asText()))
                     .append(")\n");
         }
+    }
+
+    public static String trimStackTraceElements(StackTraceElement[] stackTraceElements) {
+        return Arrays.stream(stackTraceElements).map(element ->
+                        element.getFileName() + " " + element.getLineNumber())
+                .collect(Collectors.joining("\n")) + "\nENDS";
     }
 
 }

@@ -2409,7 +2409,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             properties.put("project", executionSession.getPath());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
-            properties.put("stacktrace", ExceptionTrimUtils.trimStackTraceElements(e.getStackTrace()));
+            properties.put("stacktrace", ExceptionUtils.trimStackTraceElements(e.getStackTrace()));
 
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             if (shutdown) {
