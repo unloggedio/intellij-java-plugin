@@ -2409,16 +2409,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             properties.put("project", executionSession.getPath());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
-            StackTraceElement[] stackTrace = e.getStackTrace();
-            StringBuilder stackTraceBuilder = new StringBuilder();
-            for (int i=0;i<=stackTrace.length-1;i++) {
-                stackTraceBuilder.append("__")
-                        .append(stackTrace[i].getFileName())
-                        .append("_")
-                        .append(stackTrace[i].getLineNumber());
-            }
-            stackTraceBuilder.append("ENDS");
-            properties.put("stacktrace", stackTraceBuilder.toString());
+            properties.put("stacktrace", ExceptionTrimUtils.trimStackTraceElements(e.getStackTrace()));
 
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             if (shutdown) {

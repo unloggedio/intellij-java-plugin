@@ -1,6 +1,7 @@
 package com.insidious.plugin.exceptionhandler;
 
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.util.ExceptionTrimUtils;
 import com.intellij.diagnostic.AbstractMessage;
 import com.intellij.diagnostic.IdeaReportingEvent;
 import com.intellij.ide.DataManager;
@@ -59,6 +60,7 @@ public class InsidiousExceptionReportSubmitter extends ErrorReportSubmitter {
                     eventProperties.put("message", throwable.getMessage());
                     eventProperties.put("comment", additionalInfo);
                     eventProperties.put("stacktrace", ExceptionUtil.getThrowableText(throwable));
+                    eventProperties.put("trimmedTrace", ExceptionTrimUtils.trimStackTraceElements(throwable.getStackTrace()));
                     UsageInsightTracker.getInstance().RecordEvent("PLUGIN_EXCEPTION_REPORTED", eventProperties);
                 });
 
