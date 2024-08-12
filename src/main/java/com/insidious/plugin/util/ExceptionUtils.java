@@ -71,9 +71,9 @@ public class ExceptionUtils {
     }
 
     public static String trimStackTraceElements(StackTraceElement[] stackTraceElements) {
-        return Arrays.stream(stackTraceElements).map(element ->
-                        element.getFileName() + " " + element.getLineNumber())
+        return Arrays.stream(stackTraceElements)
+                .filter(stackTraceElement -> stackTraceElement.getClassName().contains("com.insidious"))
+                .map(element -> element.getFileName() + " " + element.getLineNumber())
                 .collect(Collectors.joining("\n")) + "\nENDS";
     }
-
 }
